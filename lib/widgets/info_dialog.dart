@@ -91,19 +91,9 @@ class _InfoDialogState extends State<InfoDialog> with TickerProviderStateMixin {
               style: titleTextStyle,
             ),
           ),
-          PopupMenuButton<String>(
-            tooltip: 'GitHub',
-            onSelected: _openGitHub,
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: AppConst.developerGithubLink,
-                child: Text('GitHub · ${AppConst.developerName}'),
-              ),
-              PopupMenuItem(
-                value: AppConst.upstreamGithubLink,
-                child: Text('Original project · Mohammed Ragheb'),
-              ),
-            ],
+          IconButton(
+            tooltip: 'Keycap Calc on GitHub',
+            onPressed: () => _openGitHub(AppConst.projectGithubLink),
             icon: Lottie.asset(
               githubIconPath,
               width: 50,

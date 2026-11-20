@@ -237,6 +237,10 @@ void main() {
     expect(tester.widget<ResultWidget>(find.byType(ResultWidget)).fontScale,
         greaterThan(1.0));
 
+    await tester.binding.setSurfaceSize(const Size(720, 1280));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(NumberPad)), const Size(680, 700));
+
     await tester.binding.setSurfaceSize(const Size(700, 280));
     await tester.pumpAndSettle();
     expect(

@@ -46,7 +46,7 @@ class DashboardScreen extends StatelessWidget {
                           constraints.maxWidth > constraints.maxHeight;
                       final contentWidth = math.min(
                         constraints.maxWidth,
-                        isLandscape ? 1120.0 : 560.0,
+                        isLandscape ? 1120.0 : 680.0,
                       );
                       final availableHeight = constraints.maxHeight;
                       final keypadHeight = isLandscape
@@ -57,7 +57,7 @@ class DashboardScreen extends StatelessWidget {
                               )
                           : math.min(
                               availableHeight * 0.66,
-                              contentWidth * 1.25,
+                              math.min(constraints.maxWidth * 1.25, 700.0),
                             );
 
                       return Column(

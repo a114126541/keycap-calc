@@ -4,8 +4,8 @@ class AppConst {
   static const String appName = 'Keycap Calc';
   static const String developerName = 'gospursgo';
   static const String developerGithubLink = 'https://github.com/a114126541';
-  static const String upstreamGithubLink =
-      'https://github.com/mllrr96/Neumorphic-Calculator';
+  static const String projectGithubLink =
+      'https://github.com/a114126541/keycap-calc';
 
   static const String swipeUpGesture = 'assets/lottie/swipe_up.json';
   static const String swipeRightGesture = 'assets/lottie/swipe_right.json';

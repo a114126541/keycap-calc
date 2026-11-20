@@ -1,7 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:neumorphic_calculator/utils/extensions/color_extension.dart';
 import 'package:neumorphic_calculator/utils/extensions/extensions.dart';
+import 'package:neumorphic_calculator/utils/hardware_palette.dart';
+
+enum KeyStyle {
+  original('Original'),
+  flat('Flat'),
+  lowProfile('2.5D Keycap'),
+  sculpted('3D Keycap'),
+  glass('Frosted Glass');
+
+  const KeyStyle(this.label);
+  final String label;
+}
 
 enum CalculatorButton {
   allClear('AC'),
@@ -164,8 +177,43 @@ enum ThemeColor {
   tealBlue(Color(0xFF008080)),
   peachOrange(Color(0xFFFFA07A)),
   emeraldGreen(Color(0xFF50C878)),
-  midnightBlue(Color(0xFF191970));
+  midnightBlue(Color(0xFF191970)),
+  // Stored settings use enum indices, so new presets are appended.
+  midnightAmber(Color(0xFFEA9854)),
+  ivoryDesk(Color(0xFF616A97), HardwarePalette.ivoryDesk),
+  silverOrange(Color(0xFFAD5633), HardwarePalette.silverOrange),
+  graphiteTeal(Color(0xFF288879), HardwarePalette.graphiteTeal),
+  vintageSilver(Color(0xFF496E6B), HardwarePalette.vintageSilver);
 
   final Color color;
-  const ThemeColor(this.color);
+  final HardwarePalette? hardware;
+  const ThemeColor(this.color, [this.hardware]);
+
+  ThemeData getTheme(TextTheme textTheme, {Brightness? brightness}) {
+    final theme = color.getTheme(textTheme, brightness: brightness);
+    if (hardware case final palette?) return palette.applyTo(theme);
+    if (this != midnightAmber || brightness != Brightness.dark) {
+      return theme;
+    }
+
+    const background = Color(0xFF171614);
+    return theme.copyWith(
+      scaffoldBackgroundColor: background,
+      colorScheme: theme.colorScheme.copyWith(
+        surface: background,
+        surfaceContainer: const Color(0xFF2A2724),
+        onSurface: const Color(0xFFF4EFE9),
+        onSurfaceVariant: const Color(0xFFC8BDB2),
+        primary: const Color(0xFFFFC589),
+        onPrimary: const Color(0xFF29180D),
+        primaryContainer: const Color(0xFFD8894B),
+        onPrimaryContainer: const Color(0xFF22150C),
+      ),
+      appBarTheme: theme.appBarTheme.copyWith(
+        systemOverlayStyle: theme.appBarTheme.systemOverlayStyle?.copyWith(
+          systemNavigationBarColor: background,
+        ),
+      ),
+    );
+  }
 }

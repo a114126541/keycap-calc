@@ -10,8 +10,16 @@ class CalculatorController extends GetxController {
   static CalculatorController get instance => Get.find<CalculatorController>();
 
   String output = '';
+  bool _resultCommitted = false;
+  static final _digit = RegExp(r'\d');
 
   String get exp => textCtrl.text;
+
+  bool get canEvaluate =>
+      !isClearing &&
+      !_resultCommitted &&
+      exp.isValidForCalculation &&
+      exp.contains(_digit);
 
   bool isClearing = false;
   final textCtrl = TextEditingController();
@@ -31,6 +39,7 @@ class CalculatorController extends GetxController {
       selection: TextSelection.collapsed(offset: newOffset ?? -1),
     );
     if (autoCalculate) {
+      _resultCommitted = false;
       if (newExp.canCalculate) {
         _calculate(skipError: true);
       } else {
@@ -143,24 +152,22 @@ class CalculatorController extends GetxController {
     final isOutputValid = output.isDouble && !output.isInt;
     final newExp = output;
     output = isOutputValid ? output.toFraction : ' ';
+    _resultCommitted = true;
     updateExpression(newExp, null, autoCalculate: false);
   }
 
   void _delete([int? position]) {
-    // if (exp.isEmpty) {
-    //   expression.value = exp;
-    //   return;
-    // }
+    if (exp.isEmpty || position == 0) return;
 
     if (exp.isNoSelection(position)) {
-      final newExp = exp.removeLastChar;
-      if (!newExp.canCalculate) {
-        output = '';
-      }
-      updateExpression(newExp, null);
+      updateExpression(exp.removeLastChar, null);
     } else {
-      final result = exp.removeCharAt(position!);
-      updateExpression(result.$1, result.$2);
+      final rawExp = exp.removeCommas;
+      final rawPosition = _mapFormattedOffsetToRaw(exp, position!);
+      final (newExp, newOffset) = rawExp.removeCharAt(rawPosition);
+      final formatted = newExp.formatExpression();
+      updateExpression(
+          formatted, _mapRawOffsetToFormatted(newExp, formatted, newOffset));
     }
     _mediumHaptic();
   }
@@ -238,15 +245,16 @@ class CalculatorController extends GetxController {
   void onClearAllPressed() {
     if (exp.isNotEmpty && output.isNotEmpty) {
       isClearing = true;
-    } else {
-      output = '';
-      textCtrl.clear();
     }
+    output = '';
+    _resultCommitted = false;
+    textCtrl.clear();
     update();
     _heavyHaptic();
   }
 
   void onEqualPressed() {
+    if (!canEvaluate) return;
     final exp = this.exp;
     final output = this.output;
     _calculate();
@@ -267,7 +275,6 @@ class CalculatorController extends GetxController {
 
   void onDeletePressed() {
     _delete(baseOffset);
-    _mediumHaptic();
   }
 
   void onParenthesesPressed(String value) {
@@ -282,8 +289,6 @@ class CalculatorController extends GetxController {
 
   void onWipeComplete() {
     isClearing = false;
-    output = '';
-    textCtrl.clear();
     update();
   }
 }

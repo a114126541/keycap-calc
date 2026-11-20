@@ -35,22 +35,22 @@ class ThemeController extends GetxController {
   }
 
   void _loadThemes() {
+    final settings = preferencesService.settingsModel;
+    final textTheme = settings.font.textTheme;
     final accentColor = SystemTheme.accentColor.accent;
-    final themeColor = preferencesService.settingsModel.themeColor.color;
-    if (preferencesService.settingsModel.dynamicColor &&
+    if (settings.dynamicColor &&
         accentColor != SystemTheme.fallbackColor &&
         defaultTargetPlatform.supportsAccentColor) {
-      _applyColorToTheme(accentColor);
+      updateTheme(
+        accentColor.getTheme(textTheme),
+        accentColor.getTheme(textTheme, brightness: Brightness.dark),
+      );
     } else {
-      _applyColorToTheme(themeColor);
+      updateTheme(
+        settings.themeColor.getTheme(textTheme),
+        settings.themeColor.getTheme(textTheme, brightness: Brightness.dark),
+      );
     }
-  }
-
-  void _applyColorToTheme(Color color) {
-    final textTheme = PreferencesController.instance.settingsModel.font.textTheme;
-    _lightTheme = color.getTheme(textTheme);
-    _darkTheme = color.getTheme(textTheme, brightness: Brightness.dark);
-    update();
   }
 
   ThemeMode _loadThemeMode() {

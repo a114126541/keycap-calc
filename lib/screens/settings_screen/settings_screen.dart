@@ -8,6 +8,7 @@ import 'package:neumorphic_calculator/utils/enum.dart';
 import 'package:neumorphic_calculator/utils/extensions/color_extension.dart';
 import 'package:neumorphic_calculator/utils/extensions/extensions.dart';
 import 'package:neumorphic_calculator/utils/extensions/theme_extension.dart';
+import 'package:neumorphic_calculator/utils/hardware_palette.dart';
 import 'package:neumorphic_calculator/utils/settings_model.dart';
 import 'package:neumorphic_calculator/widgets/button_radius_dialog.dart';
 import 'package:neumorphic_calculator/widgets/neumorphic_button.dart';
@@ -21,6 +22,17 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static final _colorPresets = [
+    ThemeColor.midnightAmber,
+    ThemeColor.ivoryDesk,
+    ThemeColor.silverOrange,
+    ThemeColor.graphiteTeal,
+    ThemeColor.vintageSilver,
+    ...ThemeColor.values.where(
+      (color) => color != ThemeColor.midnightAmber && color.hardware == null,
+    ),
+  ];
+
   bool splash = false;
 
   ThemeController get themeCtrl => ThemeController.instance;
@@ -50,7 +62,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   shrinkWrap: true,
                   clipBehavior: Clip.none,
                   padding: EdgeInsets.zero,
-                  itemCount: ThemeColor.values.length + 1,
+                  itemCount: _colorPresets.length + 1,
                   scrollDirection: Axis.horizontal,
                   separatorBuilder: (_, index) {
                     if (index == 0 && !isDynamicColorAvailable) {
@@ -83,8 +95,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               settings.font.textTheme,
                               brightness: Brightness.dark);
                           ThemeController.instance.updateTheme(light, dark);
-                          SettingsController.instance.updateSettings(
-                              settings.copyWith(dynamicColor: true));
                         },
                         child: Container(
                           height: 50,
@@ -100,37 +110,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       );
                     }
-                    final themeColor = ThemeColor.values[index - 1];
+                    final themeColor = _colorPresets[index - 1];
+                    final hardware = themeColor.hardware;
+                    final selected = settings.themeColor == themeColor &&
+                        !settings.dynamicColor;
                     return NeumorphicButton(
+                      semanticLabel: hardware?.label ??
+                          (themeColor == ThemeColor.midnightAmber
+                              ? 'Midnight Amber'
+                              : null),
                       borderRadius: settings.buttonRadius,
                       onPressed: () {
                         settingsCtrl.updateSettings(settings.copyWith(
                             themeColor: themeColor, dynamicColor: false));
 
-                        final light =
-                            themeColor.color.getTheme(settings.font.textTheme);
-                        final dark = themeColor.color.getTheme(
-                            settings.font.textTheme,
-                            brightness: Brightness.dark);
-                        ThemeController.instance.updateTheme(light, dark);
-                        SettingsController.instance
-                            .updateSettings(settings.copyWith(
-                          themeColor: themeColor,
-                          dynamicColor: false,
-                        ));
+                        final textTheme = settings.font.textTheme;
+                        themeCtrl.updateTheme(
+                          themeColor.getTheme(textTheme),
+                          themeColor.getTheme(textTheme,
+                              brightness: Brightness.dark),
+                        );
+                        if (themeColor == ThemeColor.midnightAmber) {
+                          themeCtrl.saveThemeMode(ThemeMode.dark);
+                        } else if (hardware != null) {
+                          themeCtrl.saveThemeMode(hardware.preferredMode);
+                        }
                       },
-                      child: Container(
-                        height: 50,
-                        width: 50,
-                        decoration: BoxDecoration(
-                          color: themeColor.color,
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                        child: settings.themeColor == themeColor &&
-                                !settings.dynamicColor
-                            ? const Icon(Icons.check, color: Colors.white)
-                            : null,
-                      ),
+                      child: hardware != null
+                          ? _HardwareSwatch(
+                              palette: hardware, selected: selected)
+                          : Container(
+                              height: 50,
+                              width: 50,
+                              decoration: BoxDecoration(
+                                color: themeColor.color,
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              child: selected
+                                  ? const Icon(Icons.check, color: Colors.white)
+                                  : null,
+                            ),
                     );
                   }),
             ),
@@ -242,14 +261,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 18.0),
             NeumorphicButton(
               borderRadius: settings.buttonRadius,
+              onPressed: () async {
+                final style = await _selectKeyStyle(context, settings);
+                if (style != null && context.mounted) {
+                  final current = settingsCtrl.state ?? settings;
+                  settingsCtrl
+                      .updateSettings(current.copyWith(keyStyle: style));
+                }
+              },
+              child: ListTile(
+                title: const Text('Key Style'),
+                trailing: Text(settings.keyStyle.label),
+              ),
+            ),
+            const SizedBox(height: 18.0),
+            NeumorphicButton(
+              borderRadius: settings.buttonRadius,
               child: ListTile(
                 title: const Text('Button Radius'),
                 trailing: Text(settings.buttonRadius.toString()),
               ),
               onPressed: () async {
-                await ButtonRadiusDialog(buttonRadius: settings.buttonRadius)
-                    .show(context)
-                    .then(
+                await ButtonRadiusDialog(
+                  buttonRadius: settings.buttonRadius,
+                  keyStyle: settings.keyStyle,
+                ).show(context).then(
                   (result) {
                     if (result is double) {
                       settingsCtrl.updateSettings(
@@ -288,5 +324,109 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
     });
+  }
+
+  Future<KeyStyle?> _selectKeyStyle(
+      BuildContext context, SettingsModel settings) {
+    final theme = Theme.of(context);
+    final hardware = theme.extension<HardwarePalette>();
+    return showDialog<KeyStyle>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Key Style'),
+        children: [
+          for (final style in KeyStyle.values)
+            ListTile(
+              key: ValueKey(style),
+              selected: settings.keyStyle == style,
+              leading: SizedBox(
+                width: 44,
+                height: 38,
+                child: NeumorphicButton(
+                  constraints: const BoxConstraints(),
+                  borderRadius: settings.buttonRadius.clamp(0, 19).toDouble(),
+                  backgroundColor: hardware?.digits.fill ??
+                      theme.colorScheme.surfaceContainer,
+                  keyStyle: style,
+                  child: ExcludeSemantics(
+                    child: Text('7',
+                        style: TextStyle(color: hardware?.digits.ink)),
+                  ),
+                ),
+              ),
+              title: Text(style.label),
+              trailing:
+                  settings.keyStyle == style ? const Icon(Icons.check) : null,
+              onTap: () => Navigator.of(dialogContext).pop(style),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HardwareSwatch extends StatelessWidget {
+  const _HardwareSwatch({required this.palette, required this.selected});
+
+  final HardwarePalette palette;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = [
+      palette.housing,
+      palette.digits.fill,
+      palette.operators.fill,
+      palette.utility.fill,
+      palette.clear.fill,
+      palette.equals.fill,
+    ];
+    return Semantics(
+      selected: selected,
+      child: Container(
+        width: 50,
+        height: 50,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.22),
+          ),
+          gradient: SweepGradient(
+            // Duplicate each color at the ends of its sector for crisp edges.
+            colors: [
+              for (final color in colors) ...[color, color]
+            ],
+            stops: const [
+              0,
+              .27,
+              .27,
+              .51,
+              .51,
+              .66,
+              .66,
+              .79,
+              .79,
+              .91,
+              .91,
+              1
+            ],
+          ),
+        ),
+        child: selected
+            ? const DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Color(0xBB171A1C),
+                  shape: BoxShape.circle,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(3),
+                  child: Icon(Icons.check, size: 18, color: Colors.white),
+                ),
+              )
+            : null,
+      ),
+    );
   }
 }

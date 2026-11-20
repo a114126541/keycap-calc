@@ -4,6 +4,7 @@ import 'enum.dart';
 class SettingsModel extends Equatable {
   final bool hapticEnabled;
   final double buttonRadius;
+  final KeyStyle keyStyle;
   final Fonts font;
   final bool showHistoryTip;
   final bool scientific;
@@ -13,6 +14,7 @@ class SettingsModel extends Equatable {
     required this.hapticEnabled,
     required this.dynamicColor,
     required this.buttonRadius,
+    this.keyStyle = KeyStyle.original,
     required this.font,
     required this.showHistoryTip,
     required this.scientific,
@@ -34,6 +36,7 @@ class SettingsModel extends Equatable {
   SettingsModel copyWith(
       {bool? hapticEnabled,
       double? buttonRadius,
+      KeyStyle? keyStyle,
       bool? showHistoryTip,
       bool? scientific,
       bool? dynamicColor,
@@ -42,6 +45,7 @@ class SettingsModel extends Equatable {
     return SettingsModel(
         hapticEnabled: hapticEnabled ?? this.hapticEnabled,
         buttonRadius: buttonRadius ?? this.buttonRadius,
+        keyStyle: keyStyle ?? this.keyStyle,
         scientific: scientific ?? this.scientific,
         themeColor: themeColor ?? this.themeColor,
         dynamicColor: dynamicColor ?? this.dynamicColor,
@@ -54,6 +58,7 @@ class SettingsModel extends Equatable {
       'hapticEnabled': hapticEnabled,
       'dynamicColor': dynamicColor,
       'buttonRadius': buttonRadius,
+      'keyStyle': keyStyle.name,
       'scientific': scientific,
       'themeColor': themeColor.index,
       'font': font.index,
@@ -67,6 +72,10 @@ class SettingsModel extends Equatable {
       scientific: map['scientific'] ?? false,
       dynamicColor: map['dynamicColor'] ?? false,
       buttonRadius: map['buttonRadius'] ?? 12.0,
+      keyStyle: KeyStyle.values.firstWhere(
+        (style) => style.name == map['keyStyle'],
+        orElse: () => KeyStyle.original,
+      ),
       font: Fonts.values[map['font'] ?? 0],
       showHistoryTip: map['showHistoryTip'] ?? true,
       themeColor: ThemeColor.values[map['themeColor'] ?? 0],
@@ -77,6 +86,7 @@ class SettingsModel extends Equatable {
   List<Object?> get props => [
         hapticEnabled,
         buttonRadius,
+        keyStyle,
         scientific,
         themeColor,
         dynamicColor,

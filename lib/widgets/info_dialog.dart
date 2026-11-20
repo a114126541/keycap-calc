@@ -67,6 +67,12 @@ class _InfoDialogState extends State<InfoDialog> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  Future<void> _openGitHub(String link) async {
+    try {
+      await launchUrl(Uri.parse(link));
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -75,6 +81,7 @@ class _InfoDialogState extends State<InfoDialog> with TickerProviderStateMixin {
         ?.copyWith(color: isDark ? Colors.white : Colors.black);
     final githubIconPath = isDark ? AppConst.githubLight : AppConst.githubDark;
     return AlertDialog(
+      scrollable: true,
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -84,12 +91,19 @@ class _InfoDialogState extends State<InfoDialog> with TickerProviderStateMixin {
               style: titleTextStyle,
             ),
           ),
-          IconButton(
-            onPressed: () async {
-              try {
-                await launchUrl(Uri.parse(AppConst.githubLink));
-              } catch (_) {}
-            },
+          PopupMenuButton<String>(
+            tooltip: 'GitHub',
+            onSelected: _openGitHub,
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: AppConst.developerGithubLink,
+                child: Text('GitHub · ${AppConst.developerName}'),
+              ),
+              PopupMenuItem(
+                value: AppConst.upstreamGithubLink,
+                child: Text('Original project · Mohammed Ragheb'),
+              ),
+            ],
             icon: Lottie.asset(
               githubIconPath,
               width: 50,
@@ -134,11 +148,7 @@ class _InfoDialogState extends State<InfoDialog> with TickerProviderStateMixin {
           ),
           const Divider(),
           ListTile(
-            onTap: () async {
-              try {
-                await launchUrl(Uri.parse(AppConst.githubLink));
-              } catch (_) {}
-            },
+            onTap: () => _openGitHub(AppConst.developerGithubLink),
             contentPadding: const EdgeInsets.all(0),
             leading: Container(
               decoration: BoxDecoration(
@@ -151,7 +161,7 @@ class _InfoDialogState extends State<InfoDialog> with TickerProviderStateMixin {
                 height: 50,
               ),
             ),
-            title: const Text('Made with ❤️ by Mohammed Ragheb'),
+            title: const Text('This version by ${AppConst.developerName}'),
           ),
         ],
       ),

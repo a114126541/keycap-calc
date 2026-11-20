@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:neumorphic_calculator/utils/enum.dart';
 import 'package:neumorphic_calculator/widgets/neumorphic_button.dart';
 
 class ButtonRadiusDialog extends StatefulWidget {
-  const ButtonRadiusDialog({super.key, required this.buttonRadius});
+  const ButtonRadiusDialog({
+    super.key,
+    required this.buttonRadius,
+    this.keyStyle = KeyStyle.original,
+  });
 
   final double buttonRadius;
+  final KeyStyle keyStyle;
 
   @override
   State<ButtonRadiusDialog> createState() => _ButtonRadiusDialogState();
@@ -42,6 +48,7 @@ class _ButtonRadiusDialogState extends State<ButtonRadiusDialog> {
           NeumorphicButton(
             border: Border.all(color: theme.splashColor, width: 0.5),
             borderRadius: buttonRadius,
+            keyStyle: widget.keyStyle,
             child: Text('Demo', style: contentTextStyle),
           ),
           const SizedBox(height: 16),

@@ -1,102 +1,47 @@
-# Neumorphic Calculator
+# Keycap Calc
 
-A beautifully designed, customizable calculator app with a soft, modern neumorphic style. Built in Flutter for Android and iOS.
+一款用 Flutter 开发的安卓计算器，支持横竖屏布局、实体机配色、自定义键帽质感和圆角。
 
-![Calculator Screenshot](https://cdn.dribbble.com/users/2986824/screenshots/14757121/media/7754c4eac87d79773937886400d0d95d.png)
+## 界面截图
 
-## Screenshots
-<div style="text-align: center">
-    <table>
-        <tr>
-            <td style="text-align: center">
-                <img src="https://github.com/mllrr96/Neumorphic-Calculator/blob/main/screenshots/1.png" width="220"/>
-            </td>            
-            <td style="text-align: center">
-                <img src="https://github.com/mllrr96/Neumorphic-Calculator/blob/main/screenshots/2.png" width="220"/>
-            </td>   
-            <td style="text-align: center">
-                <img src="https://github.com/mllrr96/Neumorphic-Calculator/blob/main/screenshots/3.png" width="220"/>
-            </td>      
-        </tr>
-        <tr>
-            <td style="text-align: center">
-                <img src="https://github.com/mllrr96/Neumorphic-Calculator/blob/main/screenshots/4.png" width="220"/>
-            </td>               
-            <td style="text-align: center">
-                <img src="https://github.com/mllrr96/Neumorphic-Calculator/blob/main/screenshots/5.png" width="220"/>
-            </td>  
-            <td style="text-align: center">
-                <img src="https://github.com/mllrr96/Neumorphic-Calculator/blob/main/screenshots/6.png" width="220"/>
-            </td>      
-        </tr>
-    </table>
-</div>
+截图使用 **米白商务（Ivory Desk）**、**3D Keycap** 和 **25 dp** 按键圆角。
 
+### 横屏
 
-## Features
+<img src="screenshots/keycap-calc-ivory-3d-landscape.png" alt="Keycap Calc 米白商务主题与 3D 键帽的横屏布局" width="820">
 
-- **Dark Mode:** Easy on the eyes with automatic light and dark themes.
-- **Custom Themes:** Choose the look that suits your style best.
-- **Personalized Buttons:** Adjust button shapes and styles the way you like.
-- **Font Options:** Pick a font you love for the perfect look.
-- **Calculation History:** Quickly review and recall your past calculations.
+### 竖屏
 
-## Get the App!
+<img src="screenshots/keycap-calc-ivory-3d-portrait.png" alt="Keycap Calc 米白商务主题与 3D 键帽的竖屏布局" width="330">
 
-**Download:**
+## 功能
 
-Head to [Releases](https://github.com/mllrr96/Neumorphic-Calculator/releases) page and download the app
+- **竖屏四列，横屏五列**，旋转屏幕时保留当前算式。
+- **浅色、深色和系统模式**可切换，实体机主题有独立的键帽配色和 LCD 风格显示区。
+- **五种按键质感**包括 Original、Flat、2.5D Keycap、3D Keycap 和 Frosted Glass，圆角和字体可分别设置。
+- **实时显示结果**，支持括号、百分比和历史记录。短按退格删除一位，长按清空当前算式。
 
-**iOS:** Due to App Store restrictions, sideloading is required, checkout [Sideloadly](https://sideloadly.io/) or [AltStore](https://altstore.io/) for more info about sideloading.
+## 本地运行
 
+已用 Flutter 3.32.8、JDK 17 和 Android SDK Platform 35 验证构建。连接 Android 设备或启动模拟器后运行以下命令。
 
+```bash
+git clone https://github.com/a114126541/keycap-calc.git
+cd keycap-calc
+flutter pub get
+flutter run
+```
 
+运行 `flutter test` 执行测试。使用 `flutter build apk --release` 构建 APK，输出位于 `build/app/outputs/flutter-apk/`。
 
+若要和原版同时安装，可以构建使用独立包名的预览 APK。
 
-## Build it yourself
+```bash
+ORG_GRADLE_PROJECT_calculatorPreview=true flutter build apk --release --target-platform android-arm64
+```
 
-1. Clone the repository:
+## 开源许可与署名
 
-   ```bash
-   git clone https://github.com/mllrr96/Neumorphic-Calculator.git
-   ```
+Keycap Calc 由 gospursgo 维护，基于 Mohammed Ragheb 开发的 Neumorphic Calculator。[维护者](https://github.com/a114126541) · [上游项目](https://github.com/mllrr96/Neumorphic-Calculator)
 
-2. Navigate into the project directory:
-
-   ```bash
-   cd Neumorphic-Calculator
-   ```
-
-3. Install dependencies:
-
-   ```bash
-   flutter pub get
-
-4. Run the app:
-
-   ```bash
-   flutter run
-   ```
-
-
-## Platform Support
-
-- **Android:** Supported
-- **iOS:** Supported
-
-## Contributing
-
-Contributions are welcome! Please fork the repository and submit a pull request with your improvements.
-
-## License
-
-This project is open source and available under the [MIT License](LICENSE).
-
-## Acknowledgements
-
-- Inspired by [Ulima Inas Shabrina](https://dribbble.com/shabrinaiu) design, [link](https://dribbble.com/shots/14757121-CALCULATOR) 
-- Built with [Flutter](https://flutter.dev/)
-
-## Contact
-
-For any inquiries or suggestions, please feel free to email me at [ragheb.github@gmail.com](mailto:ragheb.github@gmail.com).
+原作者版权声明为 **Copyright (c) 2024 Mohammed Ragheb**。仓库根目录保留了该声明和完整 MIT 许可文本。[LICENSE](LICENSE)

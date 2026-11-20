@@ -14,11 +14,16 @@ import 'utils/enum.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SystemChrome.setPreferredOrientations(
-      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+  if (defaultTargetPlatform != TargetPlatform.android) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
   await SystemTheme.accentColor.load();
   await Get.putAsync<SharedPreferences>(
-      () async => await SharedPreferences.getInstance());
+    () async => await SharedPreferences.getInstance(),
+  );
   Get.put(DatabaseRepository(Get.find<SharedPreferences>()));
   Get.put(PreferencesController(Get.find<DatabaseRepository>()));
 
@@ -40,7 +45,9 @@ class NeumorphicCalculatorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetBuilder<ThemeController>(
       init: ThemeController(
-          Get.find<DatabaseRepository>(), Get.find<PreferencesController>()),
+        Get.find<DatabaseRepository>(),
+        Get.find<PreferencesController>(),
+      ),
       builder: (ctrl) {
         return GetMaterialApp(
           initialBinding: InitBindings(),

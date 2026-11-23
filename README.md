@@ -22,7 +22,7 @@ The screenshots show **Ivory Desk** with the **3D Keycap** style and a **25 dp**
 - **Light, dark, and system modes.** Themes inspired by physical calculators have their own key colors and LCD-style displays.
 - **Five key styles** include Original, Flat, 2.5D Keycap, 3D Keycap, and Frosted Glass. Set the corner radius and font separately.
 - **Live results**, parentheses, percentages, and calculation history. Tap Backspace to delete one character or hold it to clear the expression.
-- **Cash tally** for quick counts and till closing. [Cash tally features and screenshots](#cash-tally)
+- **Cash tally** for quick counts and till closing, with direct receipt printing. [Cash tally features and screenshots](#cash-tally)
 
 ## Cash tally
 
@@ -31,6 +31,14 @@ Tap the banknote button next to About to open **New quick count**. Count banknot
 Tap the cash register button to start **Professional till closing**. Compare counted cash with the expected amount, record the float, import a POS report, and capture signatures. Blind counting hides the expected amount and difference until you lock the count. Saved closings can be exported as PDF or CSV.
 
 In **Cash tally settings**, set the region and default currency, edit denominations, and save business details and till templates. Available currencies include CNY, HKD, MOP and TWD. You can export an encrypted backup and restore counts and settings from it.
+
+### Direct receipt printing
+
+Tap **Print** beside **Save** in quick count or professional till closing, or tap **Print** in the details of a saved count. The receipt lists each counted denomination, its quantity and subtotal, and the total.
+
+Open **Settings → Cash tally settings → Receipt printer** to connect an ESC/POS printer over USB, classic Bluetooth (SPP), or a local network. Choose the paper width and use **Print font test** to check the printer's character set. The app sends text when the receipt fits the paper width and all characters can be encoded in the verified printer font. It sends a black-and-white image in other cases.
+
+Set **Extra paper feed** to about 15, 30, 45, or 60 mm. **Cut after printing** offers Off, Partial cut, and Full cut. Some printer models only support partial cuts and leave the receipt attached at one point even when Full cut is selected. Use **Test feed and cut** to check the paper movement and cut.
 
 ### Quick count in portrait
 

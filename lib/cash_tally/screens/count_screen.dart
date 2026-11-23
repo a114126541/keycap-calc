@@ -16,9 +16,11 @@ import '../models/pos_reconciliation.dart';
 import '../models/till_template.dart';
 import '../services/closing_proof_service.dart';
 import '../services/pos_import_service.dart';
+import '../services/receipt_printer.dart';
 import '../state/app_scope.dart';
 import '../widgets/cash_keyboard.dart';
 import '../widgets/denomination_row.dart';
+import '../widgets/receipt_print_button.dart';
 import 'signature_capture_screen.dart';
 
 class CountScreen extends StatefulWidget {
@@ -563,6 +565,7 @@ class _CountScreenState extends State<CountScreen> {
 
   Widget _countFooter({required bool split}) {
     final theme = Theme.of(context);
+    final currency = _currency;
     const padding = EdgeInsets.symmetric(horizontal: 16, vertical: 8);
     final total = Column(
       mainAxisSize: MainAxisSize.min,
@@ -573,7 +576,7 @@ class _CountScreenState extends State<CountScreen> {
           fit: BoxFit.scaleDown,
           alignment: AlignmentDirectional.centerStart,
           child: Text(
-            _currency.formatMinor(
+            currency.formatMinor(
               _totalMinorUnits,
               localeCode: Localizations.localeOf(context).toLanguageTag(),
             ),
@@ -592,6 +595,17 @@ class _CountScreenState extends State<CountScreen> {
           : const Icon(Icons.check),
       label: Text(context.tr('save')),
     );
+    final actions = Wrap(
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 4,
+      children: [
+        save,
+        if (ReceiptPrinter.isSupported)
+          ReceiptPrintButton(currency: currency, quantityFor: _quantity),
+      ],
+    );
 
     return Material(
       elevation: 3,
@@ -608,7 +622,7 @@ class _CountScreenState extends State<CountScreen> {
                       padding: padding,
                       child: Align(
                         alignment: AlignmentDirectional.centerEnd,
-                        child: save,
+                        child: actions,
                       ),
                     ),
                   ),
@@ -621,7 +635,10 @@ class _CountScreenState extends State<CountScreen> {
                 children: [
                   Expanded(child: total),
                   const SizedBox(width: 8),
-                  save,
+                  if (ReceiptPrinter.isSupported)
+                    Expanded(flex: 3, child: actions)
+                  else
+                    save,
                 ],
               ),
             ),

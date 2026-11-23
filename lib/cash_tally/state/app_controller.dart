@@ -14,15 +14,18 @@ import '../models/custom_denomination.dart';
 import '../models/till_template.dart';
 import '../services/backup_service.dart';
 import '../services/local_store.dart';
+import '../services/receipt_printer.dart';
 
 class AppController extends ChangeNotifier {
   AppController(this._repository, {LocalStore? localStore})
       : _store = localStore ?? LocalStore(),
-        _preferences = _readPreferences(_repository);
+        _preferences = _readPreferences(_repository),
+        receiptPrinter = ReceiptPrinter(_repository);
 
   static const _settingsKey = 'cash_tally_settings_v1';
   final DatabaseRepository _repository;
   final LocalStore _store;
+  final ReceiptPrinter receiptPrinter;
   Map<String, Object?> _preferences;
   List<CashCountSession> _sessions = [];
   Future<void>? _historyLoad;
@@ -360,6 +363,7 @@ class AppController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    receiptPrinter.dispose();
     super.dispose();
   }
 }

@@ -8,7 +8,9 @@ import '../l10n/app_localizations.dart';
 import '../models/cash_count_session.dart';
 import '../models/currency_definition.dart';
 import '../services/closing_proof_service.dart';
+import '../services/receipt_printer.dart';
 import '../state/app_scope.dart';
+import '../widgets/receipt_print_button.dart';
 import 'count_screen.dart';
 import 'report_preview_screen.dart';
 
@@ -49,6 +51,15 @@ class SessionDetailScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final summaryColor = colors.onPrimaryContainer;
+    final openReport = FilledButton.icon(
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ReportPreviewScreen(session: current),
+        ),
+      ),
+      icon: const Icon(Icons.picture_as_pdf_outlined),
+      label: Text(context.tr('openReport')),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -111,15 +122,19 @@ class SessionDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => ReportPreviewScreen(session: current),
-              ),
-            ),
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            label: Text(context.tr('openReport')),
-          ),
+          if (ReceiptPrinter.isSupported)
+            Row(
+              children: [
+                Expanded(child: openReport),
+                const SizedBox(width: 8),
+                ReceiptPrintButton(
+                  currency: currency,
+                  quantityFor: current.quantityFor,
+                ),
+              ],
+            )
+          else
+            openReport,
           if (current.closingTitle.trim().isNotEmpty) ...<Widget>[
             const SizedBox(height: 16),
             Text(

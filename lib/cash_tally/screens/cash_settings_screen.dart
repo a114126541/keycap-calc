@@ -4,10 +4,12 @@ import '../data/country_catalog.dart';
 import '../l10n/app_localizations.dart';
 import '../models/country_profile.dart';
 import '../models/currency_definition.dart';
+import '../services/receipt_printer.dart';
 import '../state/app_scope.dart';
 import 'backup_screen.dart';
 import 'business_profile_screen.dart';
 import 'denomination_settings_screen.dart';
+import 'receipt_printer_settings_screen.dart';
 import 'till_templates_screen.dart';
 
 String appLanguageLabel(Locale locale) =>
@@ -151,6 +153,21 @@ class CashSettingsScreen extends StatelessWidget {
               ],
             ),
           ),
+          if (ReceiptPrinter.isSupported) ...[
+            const SizedBox(height: 12),
+            ListenableBuilder(
+              listenable: app.receiptPrinter,
+              builder: (context, _) => Card(
+                child: _SettingsLink(
+                  icon: Icons.print_outlined,
+                  label: context.tr('receiptPrinter'),
+                  subtitle: app.receiptPrinter.settings?.name ??
+                      context.tr('receiptChooseDevice'),
+                  destination: const ReceiptPrinterSettingsScreen(),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           Card(
             child: _SettingsLink(

@@ -90,6 +90,14 @@ const keycapEnglish = <String, String>{
   'keycapDarkMode': 'Dark',
   'cashRegionCurrency': 'Region and currency',
   'keycapAbout': 'About',
+  'keycapAboutVersion': 'Version {version}',
+  'keycapAboutCalculatorDescription':
+      'Arithmetic, percentages, and calculation history.',
+  'keycapAboutCashDescription':
+      'Count banknotes and coins by denomination in Quick count or Professional till closing.',
+  'keycapAboutPrinting': 'Receipt printing',
+  'keycapAboutPrintingDescription':
+      'Print current or saved cash counts on a compatible ESC/POS printer.',
   'keycapFont': 'Font',
   'keycapSelectFont': 'Select Font',
   'keycapFontExample': 'This is demo text 1234567890',
@@ -243,6 +251,11 @@ const simplifiedChinese = <String, String>{
   'keycapDarkMode': '深色',
   'cashRegionCurrency': '地区与货币',
   'keycapAbout': '关于',
+  'keycapAboutVersion': '版本 {version}',
+  'keycapAboutCalculatorDescription': '四则运算、百分比和计算记录。',
+  'keycapAboutCashDescription': '按面额清点纸币和硬币，支持快速点钞和专业收银结算。',
+  'keycapAboutPrinting': '小票直打',
+  'keycapAboutPrintingDescription': '通过 ESC/POS 票据打印机打印当前点钞或已保存的记录。',
   'keycapFont': '字体',
   'keycapSelectFont': '选择字体',
   'keycapFontExample': '字体示例 1234567890',

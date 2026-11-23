@@ -53,7 +53,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    final version = find.text('${AppConst.appName} 1.0.3');
+    final version = find.text('Version 1.0.3');
     final exitTitle = find.text('Exit ${AppConst.appName}');
     Future<void> tapVersion(int times) async {
       for (var tap = 0; tap < times; tap++) {

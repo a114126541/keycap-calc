@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:neumorphic_calculator/utils/extensions/theme_extension.dart';
 
 extension ColorExtension on Color {
   ThemeData getTheme(TextTheme textTheme, {Brightness? brightness}) {
     return ThemeData(
-        textTheme: textTheme,
         splashColor: const Color.fromRGBO(207, 88, 41, 1),
         scaffoldBackgroundColor:
             brightness == Brightness.dark ? const Color(0xff374353) : null,
@@ -22,6 +22,6 @@ extension ColorExtension on Color {
         colorScheme: ColorScheme.fromSeed(
           seedColor: this,
           brightness: brightness ?? Brightness.light,
-        ));
+        )).withSurfaceText(textTheme);
   }
 }

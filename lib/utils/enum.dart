@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:neumorphic_calculator/utils/extensions/color_extension.dart';
 import 'package:neumorphic_calculator/utils/extensions/extensions.dart';
+import 'package:neumorphic_calculator/utils/extensions/theme_extension.dart';
 import 'package:neumorphic_calculator/utils/hardware_palette.dart';
 
 enum KeyStyle {
@@ -109,57 +110,7 @@ enum Fonts {
     }
   }
 
-  ThemeData setToTheme(ThemeData theme) {
-    switch (this) {
-      case Fonts.rubik:
-        return theme.copyWith(
-          textTheme: GoogleFonts.rubikTextTheme(),
-        );
-      case Fonts.roboto:
-        return theme.copyWith(
-          textTheme: GoogleFonts.robotoTextTheme(),
-        );
-      case Fonts.montserrat:
-        return theme.copyWith(
-          textTheme: GoogleFonts.montserratTextTheme(),
-        );
-      case Fonts.arsenal:
-        return theme.copyWith(
-          textTheme: GoogleFonts.arsenalTextTheme(),
-        );
-      case Fonts.merriweather:
-        return theme.copyWith(
-          textTheme: GoogleFonts.merriweatherTextTheme(),
-        );
-
-      case Fonts.ptSans:
-        return theme.copyWith(
-          textTheme: GoogleFonts.ptSansTextTheme(),
-        );
-      case Fonts.margarine:
-        return theme.copyWith(
-          textTheme: GoogleFonts.margarineTextTheme(),
-        );
-      case Fonts.dancingScript:
-        return theme.copyWith(
-          textTheme: GoogleFonts.dancingScriptTextTheme(),
-        );
-
-      case Fonts.kodeMono:
-        return theme.copyWith(
-          textTheme: GoogleFonts.kodeMonoTextTheme(),
-        );
-
-      case Fonts.cabin:
-        return theme.copyWith(
-          textTheme: GoogleFonts.cabinTextTheme(),
-        );
-      case Fonts.pacifico:
-        return theme.copyWith(
-          textTheme: GoogleFonts.pacificoTextTheme(),
-        );
-    }
-  }
+  ThemeData setToTheme(ThemeData theme) => theme.withSurfaceText(textTheme);
 }
 
 enum ThemeColor {
@@ -197,23 +148,25 @@ enum ThemeColor {
     }
 
     const background = Color(0xFF171614);
-    return theme.copyWith(
-      scaffoldBackgroundColor: background,
-      colorScheme: theme.colorScheme.copyWith(
-        surface: background,
-        surfaceContainer: const Color(0xFF2A2724),
-        onSurface: const Color(0xFFF4EFE9),
-        onSurfaceVariant: const Color(0xFFC8BDB2),
-        primary: const Color(0xFFFFC589),
-        onPrimary: const Color(0xFF29180D),
-        primaryContainer: const Color(0xFFD8894B),
-        onPrimaryContainer: const Color(0xFF22150C),
-      ),
-      appBarTheme: theme.appBarTheme.copyWith(
-        systemOverlayStyle: theme.appBarTheme.systemOverlayStyle?.copyWith(
-          systemNavigationBarColor: background,
-        ),
-      ),
-    );
+    return theme
+        .copyWith(
+          scaffoldBackgroundColor: background,
+          colorScheme: theme.colorScheme.copyWith(
+            surface: background,
+            surfaceContainer: const Color(0xFF2A2724),
+            onSurface: const Color(0xFFF4EFE9),
+            onSurfaceVariant: const Color(0xFFC8BDB2),
+            primary: const Color(0xFFFFC589),
+            onPrimary: const Color(0xFF29180D),
+            primaryContainer: const Color(0xFFD8894B),
+            onPrimaryContainer: const Color(0xFF22150C),
+          ),
+          appBarTheme: theme.appBarTheme.copyWith(
+            systemOverlayStyle: theme.appBarTheme.systemOverlayStyle?.copyWith(
+              systemNavigationBarColor: background,
+            ),
+          ),
+        )
+        .withSurfaceText(textTheme);
   }
 }

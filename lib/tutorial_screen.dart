@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:neumorphic_calculator/cash_tally/l10n/app_localizations.dart';
 import 'package:lottie/lottie.dart';
 import 'package:neumorphic_calculator/controllers/preference_controller.dart';
 import 'package:neumorphic_calculator/utils/const.dart';
@@ -101,21 +102,21 @@ class _TutorialScreenState extends State<TutorialScreen>
           contents: [
             TargetContent(
               builder: (context, controller) {
-                return const Column(
+                return Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Swipe right to view settings',
-                      style: TextStyle(
+                      context.tr('keycapSettingsHint'),
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                         fontSize: 20,
                       ),
                     ),
                     Text(
-                      'and change theme, button style and more',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
+                      context.tr('keycapThemeHint'),
+                      style: const TextStyle(color: Colors.white, fontSize: 18),
                     ),
                   ],
                 );
@@ -132,13 +133,13 @@ class _TutorialScreenState extends State<TutorialScreen>
           contents: [
             TargetContent(
               builder: (context, controller) {
-                return const Column(
+                return Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Swipe left to view calculations history',
-                      style: TextStyle(
+                      context.tr('keycapHistoryHint'),
+                      style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                           fontSize: 20),

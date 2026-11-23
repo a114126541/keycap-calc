@@ -3,6 +3,13 @@ import 'package:flutter/material.dart';
 extension ThemeExtension on ThemeData {
   bool get isDarkMode => brightness == Brightness.dark;
 
+  ThemeData withSurfaceText(TextTheme styles) => copyWith(
+        textTheme: styles.apply(
+          displayColor: colorScheme.onSurface,
+          bodyColor: colorScheme.onSurface,
+        ),
+      );
+
   List<BoxShadow> get neumorphicShadows => [
         BoxShadow(
           color: isDarkMode

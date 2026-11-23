@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:neumorphic_calculator/cash_tally/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:neumorphic_calculator/screens/dashboard_screen/dashboard_controller.dart';
@@ -68,8 +69,8 @@ class _HistoryScreenState extends State<HistoryScreen>
                               child: ListTile(
                                   leading: Icon(Icons.info_outline,
                                       color: theme.colorScheme.secondary),
-                                  title: const Text(
-                                      'Press and hold to copy result'),
+                                  title:
+                                      Text(context.tr('keycapCopyResultHint')),
                                   tileColor: theme.colorScheme.secondary
                                       .withValues(alpha: 0.1),
                                   trailing: IconButton(
@@ -109,8 +110,8 @@ class _HistoryScreenState extends State<HistoryScreen>
                           },
                         ),
                         onEmpty: Center(
-                          child:
-                              Text('Expression history = 0', style: textStyle),
+                          child: Text(context.tr('keycapHistoryEmpty'),
+                              style: textStyle),
                         ),
                         onLoading: const Center(
                           child: CircularProgressIndicator(),

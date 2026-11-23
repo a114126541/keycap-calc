@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:neumorphic_calculator/controllers/theme_controller.dart';
+import 'package:neumorphic_calculator/cash_tally/l10n/app_localizations.dart';
 import 'package:neumorphic_calculator/screens/dashboard_screen/dashboard_controller.dart';
 import 'package:neumorphic_calculator/screens/history_screen/history_controller.dart';
 import 'package:neumorphic_calculator/screens/settings_screen/settings_controller.dart';
 import 'package:neumorphic_calculator/utils/const.dart';
-import 'package:neumorphic_calculator/utils/extensions/extensions.dart';
 import 'package:neumorphic_calculator/utils/extensions/theme_extension.dart';
+import 'package:neumorphic_calculator/utils/extensions/widget_extension.dart';
 import 'package:neumorphic_calculator/widgets/confirm_dialog.dart';
+import 'package:neumorphic_calculator/widgets/calculator_mode_button.dart';
 import 'package:neumorphic_calculator/widgets/icon_page_indicator.dart';
 import 'package:neumorphic_calculator/widgets/info_dialog.dart';
+import 'package:neumorphic_calculator/widgets/workspace_toolbar.dart';
 
 class CalculatorAppBar extends StatefulWidget implements PreferredSizeWidget {
   const CalculatorAppBar({super.key});
@@ -24,34 +26,30 @@ class CalculatorAppBar extends StatefulWidget implements PreferredSizeWidget {
 }
 
 class _CalculatorAppBarState extends State<CalculatorAppBar> {
-  ThemeController get themeCtrl => ThemeController.instance;
-
   DashboardController get dashboardCtrl => DashboardController.instance;
 
   HistoryController get historyCtrl => HistoryController.instance;
-  bool darkMode = false;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).isDarkMode;
     final onHistoryPage = dashboardCtrl.index == 2;
-    return Container(
-      alignment: Alignment.bottomLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GetBuilder<SettingsController>(builder: (ctrl) {
-            return IconPageIndicator(
-              controller: dashboardCtrl.pageController,
-              icons: [
-                LucideIcons.wrench,
-                LucideIcons.calculator,
-                LucideIcons.history,
-              ],
-              buttonRadius: ctrl.state?.buttonRadius,
-            );
-          }),
+    return SizedBox(
+      height: kToolbarHeight,
+      child: WorkspaceToolbar(
+        leading: GetBuilder<SettingsController>(builder: (ctrl) {
+          return IconPageIndicator(
+            controller: dashboardCtrl.pageController,
+            icons: [
+              LucideIcons.wrench,
+              LucideIcons.calculator,
+              LucideIcons.history,
+            ],
+            buttonRadius: ctrl.state?.buttonRadius,
+          );
+        }),
+        actions: [
+          if (!onHistoryPage) const CalculatorModeButton(),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             transitionBuilder: (child, animation) {
@@ -66,6 +64,8 @@ class _CalculatorAppBarState extends State<CalculatorAppBar> {
             child: IconButton(
               key: ValueKey<bool>(onHistoryPage),
               padding: const EdgeInsets.all(16.0),
+              tooltip: context
+                  .tr(onHistoryPage ? 'keycapClearHistory' : 'keycapAbout'),
               icon: onHistoryPage
                   ? const Icon(
                       LucideIcons.trash2,
@@ -79,7 +79,7 @@ class _CalculatorAppBarState extends State<CalculatorAppBar> {
                           title: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Clear History'),
+                              Text(context.tr('keycapClearHistory')),
                               Lottie.asset(
                                 !isDark
                                     ? AppConst.deleteDark
@@ -90,9 +90,8 @@ class _CalculatorAppBarState extends State<CalculatorAppBar> {
                               ),
                             ],
                           ),
-                          content:
-                              'Are you sure you want to clear the history?',
-                          confirmText: 'Clear',
+                          content: context.tr('keycapClearHistoryConfirm'),
+                          confirmText: context.tr('clear'),
                           onConfirm: () {
                             historyCtrl.isClearing.value = true;
                             historyCtrl.update();
@@ -102,7 +101,7 @@ class _CalculatorAppBarState extends State<CalculatorAppBar> {
                       const InfoDialog().show(context);
                     },
             ),
-          )
+          ),
         ],
       ),
     );

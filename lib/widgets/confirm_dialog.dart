@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:neumorphic_calculator/cash_tally/l10n/app_localizations.dart';
 import 'package:neumorphic_calculator/utils/extensions/theme_extension.dart';
 
 class ConfirmDialog extends StatelessWidget {
@@ -36,7 +37,7 @@ class ConfirmDialog extends StatelessWidget {
           onPressed: () {
             Navigator.pop(context);
           },
-          child: const Text('Cancel'),
+          child: Text(context.tr('cancel')),
         ),
         TextButton(
           onPressed: () {

@@ -8,6 +8,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   cupertino_icons: ^1.0.6
   math_expressions: ^3.0.0
   auto_size_text: ^3.0.0
@@ -29,6 +31,12 @@ dependencies:
   lucide_icons: ^0.257.0
   flutter_launcher_icons: ^0.14.4
   package_info_plus: ^8.3.0
+  path_provider: ^2.1.5
+  cryptography: ^2.7.0
+  flutter_file_dialog: 3.0.2
+  pdf: ^3.11.3
+  printing: ^5.14.2
+  share_plus: ^11.1.0
 
 dev_dependencies:
   flutter_test:
@@ -39,8 +47,12 @@ flutter:
   uses-material-design: true
 
   assets:
+    - LICENSE
     - assets/google_fonts/
     - assets/lottie/
+    - assets/cash_tally/fonts/
+    - assets/icons/icon.png
+    - assets/licenses/Aardvarkland-CashTally.txt
 
 
   fonts:

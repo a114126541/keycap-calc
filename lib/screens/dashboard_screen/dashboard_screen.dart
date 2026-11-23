@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:neumorphic_calculator/cash_tally/screens/cash_tally_screen.dart';
 import 'package:neumorphic_calculator/screens/calculator_screen/calculator_controller.dart';
 import 'package:neumorphic_calculator/screens/dashboard_screen/dashboard_controller.dart';
 import 'package:neumorphic_calculator/screens/calculator_screen/calculator_screen.dart';
@@ -23,88 +24,115 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return GetBuilder<DashboardController>(
-      builder: (dashCtrl) {
-        return PopScope(
-          canPop: dashCtrl.index == 1,
-          onPopInvokedWithResult: (val, _) {
-            if (val) return;
-            dashCtrl.animateToPage(1);
-          },
-          child: TutorialScreen(
-            child: AnnotatedRegion<SystemUiOverlayStyle>(
-              value: theme.appBarTheme.systemOverlayStyle?.copyWith(
-                    systemNavigationBarColor: theme.scaffoldBackgroundColor,
-                  ) ??
-                  SystemUiOverlayStyle.light,
-              child: Scaffold(
-                body: SafeArea(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isLandscape =
-                          constraints.maxWidth > constraints.maxHeight;
-                      final contentWidth = math.min(
-                        constraints.maxWidth,
-                        isLandscape ? 1120.0 : 680.0,
-                      );
-                      final availableHeight = constraints.maxHeight;
-                      final keypadHeight = isLandscape
-                          ? availableHeight -
-                              math.max(
-                                availableHeight * 0.32,
-                                math.min(96.0, availableHeight * 0.5),
-                              )
-                          : math.min(
-                              availableHeight * 0.66,
-                              math.min(constraints.maxWidth * 1.25, 700.0),
-                            );
+      builder: (dashboard) => PopScope(
+        canPop: !dashboard.showCashTally && dashboard.index == 1,
+        onPopInvokedWithResult: (popped, _) {
+          if (popped) return;
+          if (dashboard.showCashTally) {
+            dashboard.switchMode();
+          } else {
+            dashboard.animateToPage(1);
+          }
+        },
+        child: IndexedStack(
+          index: dashboard.showCashTally ? 1 : 0,
+          children: [
+            ExcludeFocus(
+              excluding: dashboard.showCashTally,
+              child: _CalculatorWorkspace(dashboard: dashboard),
+            ),
+            if (dashboard.hasOpenedCashTally)
+              ExcludeFocus(
+                excluding: !dashboard.showCashTally,
+                child: const CashTallyScreen(),
+              )
+            else
+              const SizedBox.shrink(),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-                      return Column(
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              width: contentWidth,
-                              child:
-                                  _CalculatorDisplay(isLandscape: isLandscape),
-                            ),
-                          ),
-                          SizedBox(
-                            height: keypadHeight,
-                            child: PageView(
-                              physics: CustomScrollPhysics(),
-                              onPageChanged: (index) {
-                                dashCtrl.index = index;
-                                dashCtrl.update();
-                              },
-                              controller: dashCtrl.pageController,
-                              children: [
-                                const KeepAliveWrapper(child: SettingsScreen()),
-                                KeepAliveWrapper(
-                                  child: Center(
-                                    child: SizedBox(
-                                      width: contentWidth,
-                                      height: double.infinity,
-                                      child: CalculatorScreen(
-                                        isLandscape: isLandscape,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const KeepAliveWrapper(child: HistoryScreen()),
-                              ],
-                            ),
-                          ),
-                        ],
+class _CalculatorWorkspace extends StatelessWidget {
+  const _CalculatorWorkspace({required this.dashboard});
+
+  final DashboardController dashboard;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return TutorialScreen(
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: theme.appBarTheme.systemOverlayStyle?.copyWith(
+              systemNavigationBarColor: theme.scaffoldBackgroundColor,
+            ) ??
+            SystemUiOverlayStyle.light,
+        child: Scaffold(
+          body: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isLandscape =
+                    constraints.maxWidth > constraints.maxHeight;
+                final contentWidth = math.min(
+                  constraints.maxWidth,
+                  isLandscape ? 1120.0 : 680.0,
+                );
+                final availableHeight = constraints.maxHeight;
+                final keypadHeight = isLandscape
+                    ? availableHeight -
+                        math.max(
+                          availableHeight * 0.32,
+                          math.min(96.0, availableHeight * 0.5),
+                        )
+                    : math.min(
+                        availableHeight * 0.66,
+                        math.min(constraints.maxWidth * 1.25, 700.0),
                       );
-                    },
-                  ),
-                ),
-              ),
+
+                return Column(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        width: contentWidth,
+                        child: _CalculatorDisplay(isLandscape: isLandscape),
+                      ),
+                    ),
+                    SizedBox(
+                      height: keypadHeight,
+                      child: PageView(
+                        physics: CustomScrollPhysics(),
+                        onPageChanged: (index) {
+                          dashboard.index = index;
+                          dashboard.update();
+                        },
+                        controller: dashboard.pageController,
+                        children: [
+                          const KeepAliveWrapper(child: SettingsScreen()),
+                          KeepAliveWrapper(
+                            child: Center(
+                              child: SizedBox(
+                                width: contentWidth,
+                                height: double.infinity,
+                                child: CalculatorScreen(
+                                  isLandscape: isLandscape,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const KeepAliveWrapper(child: HistoryScreen()),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

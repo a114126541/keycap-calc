@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:neumorphic_calculator/cash_tally/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:neumorphic_calculator/screens/settings_screen/settings_controller.dart';
@@ -39,9 +40,9 @@ class _InfoDialogState extends State<InfoDialog> with TickerProviderStateMixin {
 
     _resetVersionTaps();
     ConfirmDialog(
-      title: const Text('Exit ${AppConst.appName}'),
-      content: 'Are you sure you want to exit?',
-      confirmText: 'Exit',
+      title: Text(context.tr('keycapExitTitle')),
+      content: context.tr('keycapExitConfirm'),
+      confirmText: context.tr('keycapExit'),
       onConfirm: SystemNavigator.pop,
     ).show(context);
   }
@@ -153,7 +154,7 @@ class _InfoDialogState extends State<InfoDialog> with TickerProviderStateMixin {
                 height: 50,
               ),
             ),
-            title: const Text('Swipe left to access the history.'),
+            title: Text(context.tr('keycapHistoryHint')),
           ),
           const Divider(),
           ListTile(
@@ -169,7 +170,7 @@ class _InfoDialogState extends State<InfoDialog> with TickerProviderStateMixin {
                 height: 50,
               ),
             ),
-            title: const Text('Swipe right to access the settings.'),
+            title: Text(context.tr('keycapSettingsHint')),
           ),
           const Divider(),
           ListTile(
@@ -186,7 +187,8 @@ class _InfoDialogState extends State<InfoDialog> with TickerProviderStateMixin {
                 height: 50,
               ),
             ),
-            title: const Text('This version by ${AppConst.developerName}'),
+            title: Text(context
+                .tr('keycapDeveloper', {'name': AppConst.developerName})),
           ),
         ],
       ),
@@ -195,13 +197,13 @@ class _InfoDialogState extends State<InfoDialog> with TickerProviderStateMixin {
           onPressed: () {
             showLicensePage(context: context);
           },
-          child: const Text('Licenses'),
+          child: Text(context.tr('keycapLicenses')),
         ),
         TextButton(
           onPressed: () {
             Navigator.of(context).pop();
           },
-          child: const Text('Close'),
+          child: Text(context.tr('close')),
         ),
       ],
     );

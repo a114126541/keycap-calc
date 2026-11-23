@@ -6,6 +6,7 @@ class AppConst {
   static const String developerGithubLink = 'https://github.com/a114126541';
   static const String projectGithubLink =
       'https://github.com/a114126541/keycap-calc';
+  static const cashTallyLicense = 'assets/licenses/Aardvarkland-CashTally.txt';
 
   static const String swipeUpGesture = 'assets/lottie/swipe_up.json';
   static const String swipeRightGesture = 'assets/lottie/swipe_right.json';

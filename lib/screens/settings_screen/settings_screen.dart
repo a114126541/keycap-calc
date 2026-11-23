@@ -2,6 +2,9 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:neumorphic_calculator/cash_tally/l10n/app_localizations.dart';
+import 'package:neumorphic_calculator/cash_tally/screens/cash_settings_screen.dart';
+import 'package:neumorphic_calculator/cash_tally/state/app_scope.dart';
 import 'package:neumorphic_calculator/controllers/theme_controller.dart';
 import 'package:neumorphic_calculator/screens/settings_screen/settings_controller.dart';
 import 'package:neumorphic_calculator/utils/enum.dart';
@@ -15,7 +18,9 @@ import 'package:neumorphic_calculator/widgets/neumorphic_button.dart';
 import 'package:system_theme/system_theme.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({this.showAppBar = false, super.key});
+
+  final bool showAppBar;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -51,10 +56,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return GetBuilder<SettingsController>(builder: (settingsCtrl) {
       final settings = settingsCtrl.state ?? SettingsModel.normal();
       return Scaffold(
+        appBar: widget.showAppBar
+            ? AppBar(title: Text(context.tr('settings')))
+            : null,
         body: ListView(
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           children: [
+            NeumorphicButton(
+              borderRadius: settings.buttonRadius,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const AppLanguageScreen(),
+                ),
+              ),
+              child: ListTile(
+                leading: const Icon(Icons.language),
+                title: Text(context.tr('defaultLanguage')),
+                trailing: Text(appLanguageLabel(AppScope.of(context).locale)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            NeumorphicButton(
+              borderRadius: settings.buttonRadius,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const CashSettingsScreen(),
+                ),
+              ),
+              child: ListTile(
+                leading: const Icon(Icons.payments_outlined),
+                title: Text(context.tr('cashTallySettings')),
+                trailing: const Icon(Icons.chevron_right),
+              ),
+            ),
+            const SizedBox(height: 18),
             SizedBox(
               height: 75,
               child: ListView.separated(
@@ -215,7 +251,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             NeumorphicButton(
               borderRadius: settings.buttonRadius,
               child: ListTile(
-                title: const Text('Font'),
+                title: Text(context.tr('keycapFont')),
                 trailing: Text(theme.textTheme.bodyLarge?.fontFamily
                         ?.replaceAll('_regular', '') ??
                     ''),
@@ -225,7 +261,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     context: context,
                     builder: (context) {
                       return SimpleDialog(
-                        title: const Text('Select Font'),
+                        title: Text(context.tr('keycapSelectFont')),
                         titleTextStyle: titleTextStyle,
                         children: Fonts.values.map((font) {
                           final theme = isDark
@@ -249,8 +285,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 Navigator.pop(context);
                               },
                               title: Text(font.name.capitalize ?? font.name),
-                              subtitle:
-                                  const Text('This is demo text 1234567890'),
+                              subtitle: Text(context.tr('keycapFontExample')),
                             ),
                           );
                         }).toList(),
@@ -259,6 +294,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
             const SizedBox(height: 18.0),
+            Padding(
+              padding: const EdgeInsetsDirectional.only(start: 8, bottom: 8),
+              child: Text(
+                context.tr('keycapCalculatorSettings'),
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
             NeumorphicButton(
               borderRadius: settings.buttonRadius,
               onPressed: () async {
@@ -270,15 +314,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 }
               },
               child: ListTile(
-                title: const Text('Key Style'),
-                trailing: Text(settings.keyStyle.label),
+                title: Text(context.tr('keycapKeyStyle')),
+                trailing:
+                    Text(context.tr('keycapStyle-${settings.keyStyle.name}')),
               ),
             ),
             const SizedBox(height: 18.0),
             NeumorphicButton(
               borderRadius: settings.buttonRadius,
               child: ListTile(
-                title: const Text('Button Radius'),
+                title: Text(context.tr('keycapButtonRadius')),
                 trailing: Text(settings.buttonRadius.toString()),
               ),
               onPressed: () async {
@@ -300,7 +345,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             NeumorphicButton(
               borderRadius: settings.buttonRadius,
               child: ListTile(
-                title: const Text('Haptic Feedback'),
+                title: Text(context.tr('keycapHaptics')),
                 trailing: Switch(
                   value: settings.hapticEnabled,
                   onChanged: (value) {
@@ -333,7 +378,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return showDialog<KeyStyle>(
       context: context,
       builder: (dialogContext) => SimpleDialog(
-        title: const Text('Key Style'),
+        title: Text(context.tr('keycapKeyStyle')),
         children: [
           for (final style in KeyStyle.values)
             ListTile(
@@ -354,7 +399,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ),
-              title: Text(style.label),
+              title: Text(context.tr('keycapStyle-${style.name}')),
               trailing:
                   settings.keyStyle == style ? const Icon(Icons.check) : null,
               onTap: () => Navigator.of(dialogContext).pop(style),

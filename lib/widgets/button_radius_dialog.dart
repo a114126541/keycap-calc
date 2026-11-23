@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:neumorphic_calculator/cash_tally/l10n/app_localizations.dart';
 import 'package:neumorphic_calculator/utils/enum.dart';
 import 'package:neumorphic_calculator/widgets/neumorphic_button.dart';
 
@@ -39,17 +40,17 @@ class _ButtonRadiusDialogState extends State<ButtonRadiusDialog> {
     );
     return AlertDialog(
       backgroundColor: theme.scaffoldBackgroundColor,
-      title: Text('Button radius', style: titleTextStyle),
+      title: Text(context.tr('keycapButtonRadius'), style: titleTextStyle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Change the radius of the buttons', style: contentTextStyle),
+          Text(context.tr('keycapRadiusHelp'), style: contentTextStyle),
           const SizedBox(height: 16),
           NeumorphicButton(
             border: Border.all(color: theme.splashColor, width: 0.5),
             borderRadius: buttonRadius,
             keyStyle: widget.keyStyle,
-            child: Text('Demo', style: contentTextStyle),
+            child: Text(context.tr('keycapDemo'), style: contentTextStyle),
           ),
           const SizedBox(height: 16),
           Slider(
@@ -69,16 +70,16 @@ class _ButtonRadiusDialogState extends State<ButtonRadiusDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.tr('cancel')),
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(12.0),
-          child: const Text('Reset to default'),
+          child: Text(context.tr('keycapResetDefault')),
         ),
         TextButton(
           onPressed: () => Navigator.of(context)
               .pop(buttonRadius == widget.buttonRadius ? null : buttonRadius),
-          child: const Text('Save'),
+          child: Text(context.tr('save')),
         ),
       ],
     );

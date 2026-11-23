@@ -216,13 +216,13 @@ class CalculatorController extends GetxController {
   }
 
   void _mediumHaptic() {
-    if (SettingsController.instance.state?.hapticEnabled ?? false) {
+    if (SettingsController.hapticsEnabled) {
       HapticFeedback.mediumImpact();
     }
   }
 
   void _heavyHaptic() {
-    if (SettingsController.instance.state?.hapticEnabled ?? false) {
+    if (SettingsController.hapticsEnabled) {
       HapticFeedback.heavyImpact();
     }
   }

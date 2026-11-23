@@ -4,7 +4,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../screens/settings_screen/settings_controller.dart';
 import '../core/formatters.dart';
 import '../data/currency_catalog.dart';
 import '../l10n/app_localizations.dart';
@@ -19,6 +21,7 @@ import '../services/pos_import_service.dart';
 import '../services/receipt_printer.dart';
 import '../state/app_scope.dart';
 import '../widgets/cash_keyboard.dart';
+import '../widgets/cash_panels.dart';
 import '../widgets/denomination_row.dart';
 import '../widgets/receipt_print_button.dart';
 import 'signature_capture_screen.dart';
@@ -28,7 +31,6 @@ class CountScreen extends StatefulWidget {
     this.initialCurrencyCode,
     this.existingSession,
     this.mode = CountMode.professional,
-    this.template,
     this.toolbarBuilder,
     this.onSaved,
     super.key,
@@ -40,7 +42,6 @@ class CountScreen extends StatefulWidget {
   final String? initialCurrencyCode;
   final CashCountSession? existingSession;
   final CountMode mode;
-  final TillTemplate? template;
   final PreferredSizeWidget Function(Widget currencyAction)? toolbarBuilder;
   final VoidCallback? onSaved;
 
@@ -54,7 +55,6 @@ class _CountScreenState extends State<CountScreen> {
   late String _documentNumber;
   late DateTime _createdAt;
   late Map<String, int> _quantities;
-  late CountMode _mode;
   late List<Denomination> _customDenominationSnapshots;
   late bool _blindCount;
   DateTime? _blindCountLockedAt;
@@ -74,11 +74,18 @@ class _CountScreenState extends State<CountScreen> {
   late final TextEditingController _cashierNameController;
   late final TextEditingController _managerNameController;
   late final TextEditingController _shiftNameController;
+  final _denominationScroll = ScrollController();
+  final _summaryScroll = ScrollController();
+  final _portraitScroll = ScrollController();
 
   var _saving = false;
   var _quickStep = 1;
   var _posImportBusy = false;
   var _closingDetailsExpanded = false;
+  var _countedKind = DenominationKind.banknote;
+  var _professionalDefaultsLoaded = false;
+
+  CountMode get _mode => widget.existingSession?.mode ?? widget.mode;
 
   CurrencyDefinition get _currency {
     final configured = AppScope.read(
@@ -98,23 +105,21 @@ class _CountScreenState extends State<CountScreen> {
     super.initState();
     final existing = widget.existingSession;
     final app = AppScope.read(context);
-    final template = widget.template;
-    final initialCode =
-        template?.currencyCode ?? widget.initialCurrencyCode ?? 'CZK';
+    final initialCode = widget.initialCurrencyCode ?? 'CZK';
     final configured = app.configuredCurrency(initialCode);
     final customSnapshots = configured.denominations
         .where((item) => item.customId != null)
         .toList(growable: false);
-    final profile = widget.mode == CountMode.professional
-        ? template?.profile.withDefaults(app.businessProfile) ??
-            app.businessProfile
+    _professionalDefaultsLoaded =
+        existing != null || _mode == CountMode.professional;
+    final profile = _professionalDefaultsLoaded
+        ? app.businessProfile
         : const BusinessProfile();
     final seed = existing ??
         CashCountSession.create(
           initialCode,
           profile: profile,
-          mode: widget.mode,
-          floatMinorUnits: template?.floatMinorUnits,
+          mode: _mode,
           customDenominations: customSnapshots,
         );
     _currencyCode = seed.currencyCode;
@@ -122,7 +127,6 @@ class _CountScreenState extends State<CountScreen> {
     _documentNumber = seed.documentNumber;
     _createdAt = seed.createdAt;
     _quantities = Map<String, int>.from(seed.quantities);
-    _mode = seed.mode;
     _customDenominationSnapshots = List<Denomination>.from(
       seed.customDenominations,
     );
@@ -160,6 +164,10 @@ class _CountScreenState extends State<CountScreen> {
   @override
   void didUpdateWidget(covariant CountScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (_mode == CountMode.professional && !_professionalDefaultsLoaded) {
+      _applyBusinessProfile(AppScope.read(context).businessProfile);
+      _professionalDefaultsLoaded = true;
+    }
     final defaultCurrency = widget.initialCurrencyCode;
     if (widget.toolbarBuilder != null &&
         defaultCurrency != null &&
@@ -188,13 +196,16 @@ class _CountScreenState extends State<CountScreen> {
     _cashierNameController.dispose();
     _managerNameController.dispose();
     _shiftNameController.dispose();
+    _denominationScroll.dispose();
+    _summaryScroll.dispose();
+    _portraitScroll.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
-    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final currency = _currency;
     final currencyChoices = CurrencyCatalog.displayOrder(
       _currencyCode,
       favoriteCodes: app.favoriteCurrencyCodes,
@@ -209,36 +220,61 @@ class _CountScreenState extends State<CountScreen> {
           builder: (context, constraints) {
             final landscape =
                 MediaQuery.orientationOf(context) == Orientation.landscape;
-            final split = landscape && constraints.maxWidth >= 620;
-            final showFooter = !keyboardOpen || constraints.maxHeight >= 240;
-            final professional = _mode == CountMode.professional;
-            final counting = _countingControls(
-              blindCountControl:
-                  professional && !split ? _blindCountControl() : null,
-            );
-            final settlement = _settlementFields(split: split);
+            final split = landscape && constraints.maxWidth >= cashSplitWidth;
+            final counting = _countingControls(currency);
+            final summary = _summaryContent(currency, spacious: split);
+            final footer = _countFooter(currency);
 
             return Center(
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: split ? 1120 : 680),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: split
-                          ? Row(
-                              key: const ValueKey('cash-tally-two-panes'),
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(child: _countList(counting)),
-                                const VerticalDivider(width: 1),
-                                Expanded(child: _countList(settlement)),
-                              ],
-                            )
-                          : _countList([...counting, ...settlement]),
-                    ),
-                    if (showFooter) _countFooter(split: split),
-                  ],
-                ),
+                constraints:
+                    BoxConstraints(maxWidth: split ? cashWorkspaceWidth : 680),
+                child: split
+                    ? Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                        child: Row(
+                          key: const ValueKey('cash-tally-two-panes'),
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              flex: 54,
+                              child: CashPanel(
+                                  child: _scrollPane(
+                                _denominationScroll,
+                                counting,
+                                'cash-denomination-list',
+                              )),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              flex: 46,
+                              child: CashPanel(
+                                  child: Column(
+                                children: [
+                                  Expanded(
+                                      child: _scrollPane(_summaryScroll,
+                                          summary, 'cash-summary-list')),
+                                  footer,
+                                ],
+                              )),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          Expanded(
+                              child: _scrollPane(
+                                  _portraitScroll,
+                                  [
+                                    _stackedPanel(counting),
+                                    const SizedBox(height: 10),
+                                    _stackedPanel(summary),
+                                  ],
+                                  'cash-portrait-list')),
+                          footer,
+                        ],
+                      ),
               ),
             );
           },
@@ -246,6 +282,30 @@ class _CountScreenState extends State<CountScreen> {
       ),
     );
   }
+
+  Widget _stackedPanel(List<Widget> children) => CashPanel(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
+          ),
+        ),
+      );
+
+  Widget _scrollPane(
+          ScrollController controller, List<Widget> children, String key) =>
+      Scrollbar(
+        controller: controller,
+        child: ListView(
+          key: ValueKey(key),
+          controller: controller,
+          cacheExtent: 1000,
+          padding: const EdgeInsets.all(12),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          children: children,
+        ),
+      );
 
   PreferredSizeWidget _countAppBar(Widget currencyAction) {
     final professional = _mode == CountMode.professional;
@@ -268,20 +328,8 @@ class _CountScreenState extends State<CountScreen> {
           if (professional)
             IconButton(
               tooltip: context.tr('professionalCloseInfo'),
-              icon: const Icon(Icons.info_outline, size: 21),
-              onPressed: () => showDialog<void>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text(title),
-                  content: Text(context.tr('professionalCloseHelp')),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text(context.tr('close')),
-                    ),
-                  ],
-                ),
-              ),
+              icon: const Icon(LucideIcons.info, size: 21),
+              onPressed: _showProfessionalInfo,
             ),
         ],
       ),
@@ -308,19 +356,27 @@ class _CountScreenState extends State<CountScreen> {
       onSelected: _changeCurrency,
       child: SizedBox(
         height: kMinInteractiveDimension,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(_currencyCode, style: theme.textTheme.labelLarge),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.swap_horiz_rounded,
-                size: 20,
-                color: _quantitiesLocked ? theme.disabledColor : null,
+        child: Center(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(color: theme.colorScheme.outlineVariant),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_currencyCode, style: theme.textTheme.labelLarge),
+                  const SizedBox(width: 4),
+                  Icon(
+                    LucideIcons.chevronDown,
+                    size: 16,
+                    color: _quantitiesLocked ? theme.disabledColor : null,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -330,24 +386,50 @@ class _CountScreenState extends State<CountScreen> {
   String _currencyLabel(CurrencyDefinition currency) =>
       '${currency.code} · ${context.tr('currency${currency.code}')}';
 
-  Widget _countList(List<Widget> children) => ListView(
-        primary: false,
-        // Keep nearby denomination rows mounted during repeated entry.
-        cacheExtent: 1600,
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: children,
-      );
-
-  List<Widget> _countingControls({Widget? blindCountControl}) {
-    final currency = _currency;
-    final banknotes = currency.banknotes.reversed.toList(growable: false);
-    final coins = currency.coins.reversed.toList(growable: false);
+  List<Widget> _countingControls(CurrencyDefinition currency) {
+    final banknotes = _countedKind == DenominationKind.banknote;
+    final denominations = (banknotes ? currency.banknotes : currency.coins)
+      ..sort((a, b) => b.minorUnits.compareTo(a.minorUnits));
+    final canClear =
+        !_quantitiesLocked && denominations.any((item) => _quantity(item) > 0);
+    final theme = Theme.of(context);
     return [
+      Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(child: _denominationTab(DenominationKind.banknote)),
+                const SizedBox(width: 4),
+                Flexible(child: _denominationTab(DenominationKind.coin)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 112),
+            child: TextButton.icon(
+              onPressed: canClear ? () => _clearSection(denominations) : null,
+              style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 6)),
+              icon: const Icon(LucideIcons.trash2, size: 17),
+              label: Text(context.tr('clear'),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 10),
       SegmentedButton<int>(
-        showSelectedIcon: MediaQuery.sizeOf(context).width >= 340,
-        style: const ButtonStyle(
-          padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 8)),
+        showSelectedIcon: false,
+        expandedInsets: EdgeInsets.zero,
+        style: ButtonStyle(
+          padding:
+              const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 4)),
+          shape: WidgetStatePropertyAll(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(9))),
+          side: WidgetStatePropertyAll(
+              BorderSide(color: theme.colorScheme.outlineVariant)),
         ),
         segments: const [
           ButtonSegment<int>(value: 1, label: Text('×1')),
@@ -360,173 +442,118 @@ class _CountScreenState extends State<CountScreen> {
             ? null
             : (values) => setState(() => _quickStep = values.first),
       ),
-      const SizedBox(height: 6),
-      Text(
-        context.tr('tapToAddHelp'),
-        style: Theme.of(context).textTheme.bodySmall,
+      const SizedBox(height: 12),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(4, 4, 4, 9),
+        child: Row(children: [
+          Expanded(
+              child: Text(context.tr('denomination'),
+                  style: theme.textTheme.labelLarge)),
+          SizedBox(
+            width: DenominationRow.stepperWidth,
+            child: Text(context.tr('quantity'),
+                textAlign: TextAlign.center, style: theme.textTheme.labelLarge),
+          ),
+          Expanded(
+              child: Text(context.tr('subtotal'),
+                  textAlign: TextAlign.end, style: theme.textTheme.labelLarge)),
+        ]),
       ),
-      if (blindCountControl != null) blindCountControl,
-      const SizedBox(height: 24),
-      _SectionHeader(
-        title: context.tr('banknotes'),
-        icon: Icons.payments_outlined,
-        onClear:
-            !_quantitiesLocked && banknotes.any((item) => _quantity(item) > 0)
-                ? () => _clearSection(banknotes)
-                : null,
-      ),
-      const SizedBox(height: 8),
-      ...banknotes.map(_denominationRow),
-      const SizedBox(height: 24),
-      _SectionHeader(
-        title: context.tr('coins'),
-        icon: Icons.toll_outlined,
-        onClear: !_quantitiesLocked && coins.any((item) => _quantity(item) > 0)
-            ? () => _clearSection(coins)
-            : null,
-      ),
-      const SizedBox(height: 8),
-      ...coins.map(_denominationRow),
-      const SizedBox(height: 24),
+      const Divider(height: 1),
+      if (denominations.isEmpty)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Text(context.tr('noDenominations')),
+        ),
+      for (final item in denominations) ...[
+        _denominationRow(currency, item),
+        const Divider(height: 1),
+      ],
     ];
   }
 
-  Widget _blindCountControl() => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Card(
-          child: SwitchListTile(
-            value: _blindCount,
-            onChanged: _quantitiesLocked
-                ? null
-                : (value) => setState(() => _blindCount = value),
-            secondary: const Icon(Icons.visibility_off_outlined),
-            title: Text(context.tr('blindCount')),
-            subtitle: Text(
-              _quantitiesLocked
-                  ? context.tr('blindCountLocked')
-                  : context.tr('blindCountHelp'),
-            ),
+  Widget _denominationTab(DenominationKind kind) {
+    final colors = Theme.of(context).colorScheme;
+    final selected = _countedKind == kind;
+    final banknote = kind == DenominationKind.banknote;
+    return Semantics(
+      selected: selected,
+      child: TextButton.icon(
+        key: ValueKey('cash-kind-${kind.name}'),
+        onPressed: () => setState(() => _countedKind = kind),
+        icon:
+            Icon(banknote ? LucideIcons.banknote : LucideIcons.coins, size: 19),
+        label: Text(context.tr(banknote ? 'banknotes' : 'coins'),
+            maxLines: 1, overflow: TextOverflow.ellipsis),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          backgroundColor: selected ? colors.primaryContainer : null,
+          foregroundColor:
+              selected ? colors.onPrimaryContainer : colors.onSurface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+        ),
+      ),
+    );
+  }
+
+  Widget _blindCountControl() => CashPanel(
+        child: SwitchListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+          value: _blindCount,
+          onChanged: _quantitiesLocked
+              ? null
+              : (value) => setState(() => _blindCount = value),
+          secondary: const Icon(LucideIcons.eyeOff),
+          title: Text(context.tr('blindCount')),
+          subtitle: Text(
+            _quantitiesLocked
+                ? context.tr('blindCountLocked')
+                : context.tr('blindCountHelp'),
           ),
         ),
       );
 
-  List<Widget> _settlementFields({required bool split}) {
-    final professional = _mode == CountMode.professional;
+  List<Widget> _summaryContent(CurrencyDefinition currency,
+      {required bool spacious}) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final currency = _currency;
-    final revealRequired = _blindCount && !_quantitiesLocked;
-    final expected = revealRequired
-        ? null
-        : AppFormatters.parseMoneyToMinor(
-            _expectedController.text,
-            fractionDigits: currency.fractionDigits,
-          );
-    final difference = expected == null ? null : _totalMinorUnits - expected;
-    final formattedDifference = difference == null
-        ? null
-        : currency.formatMinor(
-            difference,
-            localeCode: Localizations.localeOf(context).toLanguageTag(),
-          );
-    final (differenceBackground, differenceForeground) = switch (difference) {
-      0 => (scheme.primaryContainer, scheme.onPrimaryContainer),
-      final int amount when amount < 0 => (
-          scheme.errorContainer,
-          scheme.onErrorContainer
-        ),
-      _ => (scheme.tertiaryContainer, scheme.onTertiaryContainer),
-    };
-
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    final total = _totalMinorUnits(currency);
     return [
-      if (professional) ...[
-        _closingDetailsCard(),
-        if (split) _blindCountControl() else const SizedBox(height: 16),
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 8,
-          runSpacing: 4,
+      CashSummaryRows(
+          currency: currency, quantityFor: _quantity, spacious: spacious),
+      const SizedBox(height: 8),
+      CashAmountHighlight(
+        child: Row(
           children: [
-            Text(context.tr('cashCheck'), style: theme.textTheme.titleLarge),
-            if (split && formattedDifference != null)
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: differenceBackground,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: Text(
-                    '${context.tr('difference')} $formattedDifference',
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: differenceForeground,
-                    ),
-                  ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                context.tr('total'),
+                style:
+                    const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+              ),
+            ),
+            Expanded(
+              flex: 6,
+              child: CashAmountText(
+                currency.formatMinor(total,
+                    localeCode: locale, fixedFractionDigits: true),
+                style: TextStyle(
+                  fontSize: spacious ? 35 : 32,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
+            ),
           ],
         ),
-        const SizedBox(height: 8),
-        if (revealRequired)
-          Card(
-            color: scheme.secondaryContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    context.tr('blindCountBeforeReveal'),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSecondaryContainer,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: _lockBlindCount,
-                    icon: const Icon(Icons.lock_outline),
-                    label: Text(context.tr('finishBlindCount')),
-                  ),
-                ],
-              ),
-            ),
-          )
-        else ...[
-          _moneyField(
-            controller: _expectedController,
-            label: context.tr('expectedState', {'code': currency.code}),
-            help: context.tr('expectedHelp'),
-            icon: Icons.fact_check_outlined,
-          ),
-          const SizedBox(height: 12),
-          _moneyField(
-            controller: _floatController,
-            label: context.tr('leaveInTill', {'code': currency.code}),
-            help: context.tr('leaveInTillHelp'),
-            icon: Icons.savings_outlined,
-          ),
-        ],
-        if (!split && formattedDifference != null) ...[
-          const SizedBox(height: 12),
-          Card(
-            color: differenceBackground,
-            child: ListTile(
-              textColor: differenceForeground,
-              title: Text(context.tr('difference')),
-              trailing: Text(
-                formattedDifference,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: differenceForeground,
-                ),
-              ),
-            ),
-          ),
-        ],
-        const SizedBox(height: 12),
-      ],
+      ),
+      if (_mode == CountMode.professional)
+        ..._settlementFields(currency, total),
+      const SizedBox(height: 16),
+      Text(context.tr('note'), style: theme.textTheme.titleMedium),
+      const SizedBox(height: 6),
       TextField(
+        key: const ValueKey('cash-note'),
         controller: _noteController,
         onTapOutside: dismissCashKeyboard,
         minLines: 2,
@@ -534,127 +561,194 @@ class _CountScreenState extends State<CountScreen> {
         textCapitalization: TextCapitalization.sentences,
         inputFormatters: const [SentenceCaseTextFormatter()],
         decoration: InputDecoration(
-          labelText: context.tr('note'),
-          prefixIcon: const Icon(Icons.notes_outlined),
+          hintText: context.tr('cashNotePlaceholder'),
+          isDense: true,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
       ),
     ];
   }
 
-  Widget _moneyField({
-    required TextEditingController controller,
-    required String label,
-    required String help,
-    required IconData icon,
-  }) =>
-      TextField(
-        controller: controller,
-        onTapOutside: dismissCashKeyboard,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'[0-9.,\- ]')),
-        ],
-        decoration: InputDecoration(
-          labelText: label,
-          helperText: help,
-          helperMaxLines: 3,
-          prefixIcon: Icon(icon),
-        ),
-        onChanged: (_) => setState(() {}),
-      );
-
-  Widget _countFooter({required bool split}) {
+  List<Widget> _settlementFields(CurrencyDefinition currency, int total) {
     final theme = Theme.of(context);
-    final currency = _currency;
-    const padding = EdgeInsets.symmetric(horizontal: 16, vertical: 8);
-    final total = Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(context.tr('total')),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: AlignmentDirectional.centerStart,
-          child: Text(
-            currency.formatMinor(
-              _totalMinorUnits,
-              localeCode: Localizations.localeOf(context).toLanguageTag(),
+    final revealRequired = _blindCount && !_quantitiesLocked;
+    final expected = AppFormatters.parseMoneyToMinor(
+      _expectedController.text,
+      fractionDigits: currency.fractionDigits,
+    );
+    final difference = expected == null ? null : total - expected;
+    final locale = Localizations.localeOf(context).toLanguageTag();
+
+    return [
+      const SizedBox(height: 18),
+      Text(context.tr('cashCheck'), style: theme.textTheme.titleLarge),
+      const SizedBox(height: 10),
+      _closingDetailsCard(),
+      const SizedBox(height: 8),
+      _blindCountControl(),
+      const SizedBox(height: 8),
+      if (revealRequired)
+        CashPanel(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(context.tr('blindCountBeforeReveal')),
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  onPressed: _lockBlindCount,
+                  icon: const Icon(LucideIcons.lock),
+                  label: Text(context.tr('finishBlindCount')),
+                ),
+              ],
             ),
-            style: theme.textTheme.headlineSmall,
+          ),
+        )
+      else
+        CashPanel(
+          child: Column(
+            children: [
+              _reconciliationRow(
+                icon: LucideIcons.clipboardCheck,
+                label: context.tr('cashExpectedAmount'),
+                value: _moneyField(
+                  key: const ValueKey('cash-expected'),
+                  controller: _expectedController,
+                  label: context.tr('expectedState', {'code': currency.code}),
+                  currency: currency,
+                ),
+              ),
+              const Divider(height: 1, indent: 10, endIndent: 10),
+              _reconciliationRow(
+                icon: LucideIcons.wallet,
+                label: context.tr('cashRetainedFloat'),
+                value: _moneyField(
+                  key: const ValueKey('cash-float'),
+                  controller: _floatController,
+                  label: context.tr('leaveInTill', {'code': currency.code}),
+                  currency: currency,
+                ),
+              ),
+              const Divider(height: 1, indent: 10, endIndent: 10),
+              _reconciliationRow(
+                icon: LucideIcons.calculator,
+                label: context.tr('difference'),
+                value: CashAmountText(
+                  difference == null
+                      ? '—'
+                      : currency.formatMinor(
+                          difference,
+                          localeCode: locale,
+                          fixedFractionDigits: true,
+                        ),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: difference != null && difference < 0
+                        ? theme.colorScheme.error
+                        : null,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-      ],
-    );
-    final save = FilledButton.icon(
-      onPressed: _saving ? null : _save,
-      icon: _saving
-          ? const SizedBox.square(
-              dimension: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.check),
-      label: Text(context.tr('save')),
-    );
-    final actions = Wrap(
-      alignment: WrapAlignment.end,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 8,
-      runSpacing: 4,
-      children: [
-        save,
-        if (ReceiptPrinter.isSupported)
-          ReceiptPrintButton(currency: currency, quantityFor: _quantity),
-      ],
-    );
-
-    return Material(
-      elevation: 3,
-      color: theme.colorScheme.surfaceContainer,
-      child: split
-          ? IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: Padding(padding: padding, child: total)),
-                  const VerticalDivider(width: 1),
-                  Expanded(
-                    child: Padding(
-                      padding: padding,
-                      child: Align(
-                        alignment: AlignmentDirectional.centerEnd,
-                        child: actions,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : Padding(
-              padding: padding,
-              child: Row(
-                children: [
-                  Expanded(child: total),
-                  const SizedBox(width: 8),
-                  if (ReceiptPrinter.isSupported)
-                    Expanded(flex: 3, child: actions)
-                  else
-                    save,
-                ],
-              ),
-            ),
-    );
+    ];
   }
 
+  Widget _reconciliationRow({
+    required IconData icon,
+    required String label,
+    required Widget value,
+  }) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          children: [
+            Icon(icon, size: 19),
+            const SizedBox(width: 8),
+            Expanded(child: Text(label)),
+            const SizedBox(width: 8),
+            Expanded(child: value),
+          ],
+        ),
+      );
+
+  Widget _moneyField({
+    required Key key,
+    required TextEditingController controller,
+    required String label,
+    required CurrencyDefinition currency,
+  }) =>
+      Semantics(
+        label: label,
+        child: TextField(
+          key: key,
+          controller: controller,
+          onTapOutside: dismissCashKeyboard,
+          textAlign: TextAlign.end,
+          keyboardType: const TextInputType.numberWithOptions(
+            decimal: true,
+            signed: true,
+          ),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,\- ]')),
+          ],
+          decoration: InputDecoration(
+            isDense: true,
+            prefixText: currency.symbolBefore ? currency.symbol : null,
+            suffixText: currency.symbolBefore ? null : currency.symbol,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          onChanged: (_) => setState(() {}),
+        ),
+      );
+
+  Widget _countFooter(CurrencyDefinition currency) => CashActionBar(
+        primary: FilledButton.icon(
+          onPressed: _saving ? null : _save,
+          icon: _saving
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(LucideIcons.check),
+          label: Text(context.tr('save')),
+        ),
+        secondary: ReceiptPrinter.isSupported
+            ? ReceiptPrintButton(currency: currency, quantityFor: _quantity)
+            : null,
+      );
+
   Widget _closingDetailsCard() {
-    return Card(
+    final templates = AppScope.read(context).tillTemplates;
+    return CashPanel(
       child: ExpansionTile(
         initiallyExpanded: _closingDetailsExpanded,
         onExpansionChanged: (value) => _closingDetailsExpanded = value,
-        leading: const Icon(Icons.assignment_outlined),
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+        leading: const Icon(LucideIcons.clipboardList),
         title: Text(context.tr('closingDetails')),
-        subtitle: Text(_documentNumber),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: <Widget>[
+          Row(
+            children: [
+              Expanded(child: Text(_documentNumber)),
+              IconButton(
+                tooltip: context.tr('professionalCloseInfo'),
+                onPressed: _showProfessionalInfo,
+                icon: const Icon(LucideIcons.info, size: 19),
+              ),
+            ],
+          ),
+          if (templates.isNotEmpty)
+            OutlinedButton.icon(
+              onPressed: () => _chooseTillTemplate(templates),
+              icon: const Icon(LucideIcons.clipboardList),
+              label: Text(context.tr('tillTemplate')),
+            ),
           TextField(
             controller: _closingTitleController,
             onTapOutside: dismissCashKeyboard,
@@ -747,6 +841,60 @@ class _CountScreenState extends State<CountScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _showProfessionalInfo() => showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(context.tr('professionalClose')),
+          content: Text(context.tr('professionalCloseHelp')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(context.tr('close')),
+            ),
+          ],
+        ),
+      );
+
+  void _applyBusinessProfile(BusinessProfile profile) {
+    _businessNameController.text = profile.businessName;
+    _registrationIdController.text = profile.registrationId;
+    _businessAddressController.text = profile.address;
+    _locationNameController.text = profile.locationName;
+    _tillNameController.text = profile.tillName;
+    _cashierNameController.text = profile.cashierName;
+    _managerNameController.text = profile.managerName;
+    _shiftNameController.text = profile.shiftName;
+  }
+
+  Future<void> _chooseTillTemplate(List<TillTemplate> templates) async {
+    final template = await showDialog<TillTemplate>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(context.tr('tillTemplate')),
+        children: [
+          for (final item in templates)
+            SimpleDialogOption(
+              onPressed: _quantitiesLocked && item.currencyCode != _currencyCode
+                  ? null
+                  : () => Navigator.pop(dialogContext, item),
+              child: Text('${item.name} · ${item.currencyCode}'),
+            ),
+        ],
+      ),
+    );
+    if (template == null || !mounted) return;
+    await _changeCurrency(template.currencyCode);
+    if (!mounted || _currencyCode != template.currencyCode) return;
+    setState(() {
+      final profile = AppScope.read(context).businessProfile;
+      _applyBusinessProfile(template.profile.withDefaults(profile));
+      _floatController.text = AppFormatters.moneyInputFromMinor(
+        template.floatMinorUnits,
+        fractionDigits: _currency.fractionDigits,
+      );
+    });
   }
 
   Widget _detailField(
@@ -920,24 +1068,22 @@ class _CountScreenState extends State<CountScreen> {
     );
   }
 
-  Widget _denominationRow(Denomination denomination) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: DenominationRow(
-        currency: _currency,
-        denomination: denomination,
-        quantity: _quantity(denomination),
-        enabled: !_quantitiesLocked,
-        onChanged: (value) => _setQuantity(denomination, value),
-        onEdit: () => _editQuantity(denomination),
-        step: _quickStep,
-      ),
+  Widget _denominationRow(
+      CurrencyDefinition currency, Denomination denomination) {
+    return DenominationRow(
+      currency: currency,
+      denomination: denomination,
+      quantity: _quantity(denomination),
+      enabled: !_quantitiesLocked,
+      onChanged: (value) => _setQuantity(denomination, value),
+      onEdit: () => _editQuantity(denomination),
+      step: _quickStep,
     );
   }
 
-  int get _totalMinorUnits {
+  int _totalMinorUnits(CurrencyDefinition currency) {
     var total = 0;
-    for (final denomination in _currency.denominations) {
+    for (final denomination in currency.denominations) {
       total += denomination.minorUnits * _quantity(denomination);
     }
     return total;
@@ -949,7 +1095,9 @@ class _CountScreenState extends State<CountScreen> {
     if (_quantitiesLocked) {
       return;
     }
-    HapticFeedback.selectionClick();
+    if (SettingsController.hapticsEnabled) {
+      HapticFeedback.selectionClick();
+    }
     setState(() {
       if (value <= 0) {
         _quantities.remove(denomination.id);
@@ -1117,13 +1265,27 @@ class _CountScreenState extends State<CountScreen> {
   }
 
   Future<void> _save() async {
-    if (_blindCount && !_quantitiesLocked) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final includeClosing =
+        _mode == CountMode.professional || widget.existingSession != null;
+    if (includeClosing && _blindCount && !_quantitiesLocked) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('finishBlindBeforeSave'))),
+        CashActionBar.feedback(context, context.tr('finishBlindBeforeSave')),
       );
       return;
     }
     final app = AppScope.read(context);
+    final currency = _currency;
+    String closingText(TextEditingController field) =>
+        includeClosing ? field.text.trim() : '';
+
+    int? closingAmount(TextEditingController field) => includeClosing
+        ? AppFormatters.parseMoneyToMinor(
+            field.text,
+            fractionDigits: currency.fractionDigits,
+          )
+        : null;
+
     final session = CashCountSession(
       id: _sessionId,
       documentNumber: _documentNumber,
@@ -1131,34 +1293,30 @@ class _CountScreenState extends State<CountScreen> {
       createdAt: _createdAt,
       updatedAt: DateTime.now(),
       quantities: _quantities,
-      expectedMinorUnits: AppFormatters.parseMoneyToMinor(
-        _expectedController.text,
-        fractionDigits: _currency.fractionDigits,
-      ),
-      floatMinorUnits: AppFormatters.parseMoneyToMinor(
-        _floatController.text,
-        fractionDigits: _currency.fractionDigits,
-      ),
+      expectedMinorUnits: closingAmount(_expectedController),
+      floatMinorUnits: closingAmount(_floatController),
       note: _noteController.text.trim(),
-      closingTitle: _closingTitleController.text.trim(),
-      businessName: _businessNameController.text.trim(),
-      businessRegistrationId: _registrationIdController.text.trim(),
-      businessAddress: _businessAddressController.text.trim(),
-      locationName: _locationNameController.text.trim(),
-      tillName: _tillNameController.text.trim(),
-      cashierName: _cashierNameController.text.trim(),
-      managerName: _managerNameController.text.trim(),
-      shiftName: _shiftNameController.text.trim(),
-      cashierSignaturePngBase64: _cashierSignaturePngBase64,
-      managerSignaturePngBase64: _managerSignaturePngBase64,
-      blindCount: _blindCount,
-      blindCountLockedAt: _blindCountLockedAt,
+      closingTitle: closingText(_closingTitleController),
+      businessName: closingText(_businessNameController),
+      businessRegistrationId: closingText(_registrationIdController),
+      businessAddress: closingText(_businessAddressController),
+      locationName: closingText(_locationNameController),
+      tillName: closingText(_tillNameController),
+      cashierName: closingText(_cashierNameController),
+      managerName: closingText(_managerNameController),
+      shiftName: closingText(_shiftNameController),
+      cashierSignaturePngBase64:
+          includeClosing ? _cashierSignaturePngBase64 : null,
+      managerSignaturePngBase64:
+          includeClosing ? _managerSignaturePngBase64 : null,
+      blindCount: includeClosing && _blindCount,
+      blindCountLockedAt: includeClosing ? _blindCountLockedAt : null,
       mode: _mode,
       customDenominations: _customDenominationSnapshots,
-      posReport: _posReport,
+      posReport: includeClosing ? _posReport : null,
     );
     final proofed = session.copyWith(
-      closingHash: ClosingProofService.hashFor(session, _currency),
+      closingHash: ClosingProofService.hashFor(session, currency),
     );
 
     setState(() => _saving = true);
@@ -1171,7 +1329,8 @@ class _CountScreenState extends State<CountScreen> {
       if (!saved) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(context.tr('saveFailed'))));
+        ).showSnackBar(
+            CashActionBar.feedback(context, context.tr('saveFailed')));
         return;
       }
       if (!mounted) {
@@ -1179,7 +1338,7 @@ class _CountScreenState extends State<CountScreen> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(context.tr('saved'))));
+      ).showSnackBar(CashActionBar.feedback(context, context.tr('saved')));
       final onSaved = widget.onSaved;
       if (onSaved == null) {
         Navigator.of(context).pop();
@@ -1193,34 +1352,7 @@ class _CountScreenState extends State<CountScreen> {
       setState(() => _saving = false);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(context.tr('saveFailed'))));
+      ).showSnackBar(CashActionBar.feedback(context, context.tr('saveFailed')));
     }
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.title,
-    required this.icon,
-    required this.onClear,
-  });
-
-  final String title;
-  final IconData icon;
-  final VoidCallback? onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Icon(icon),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(title, style: Theme.of(context).textTheme.titleLarge),
-        ),
-        if (onClear != null)
-          TextButton(onPressed: onClear, child: Text(context.tr('clear'))),
-      ],
-    );
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../widgets/settings_row.dart';
 import '../data/country_catalog.dart';
 import '../l10n/app_localizations.dart';
 import '../models/country_profile.dart';
@@ -86,99 +88,164 @@ class CashSettingsScreen extends StatelessWidget {
   const CashSettingsScreen({super.key});
 
   @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: Text(context.tr('cashTallySettings'))),
+        body: const _SettingsList(children: [CashSettingsContent()]),
+      );
+}
+
+class CashSettingsContent extends StatelessWidget {
+  const CashSettingsContent({this.embedded = false, super.key});
+
+  final bool embedded;
+
+  @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(context.tr('cashTallySettings'))),
-      body: _SettingsList(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: Text(
-              context.tr('countingSetup'),
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+    final groupGap = SizedBox(height: embedded ? 22 : 12);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _heading(context, 'countingSetup'),
+        _group([
+          _link(
+            context,
+            icon: LucideIcons.store,
+            label: 'businessProfile',
+            subtitle: app.businessProfile.businessName.isEmpty
+                ? context.tr('businessProfileHelp')
+                : app.businessProfile.businessName,
+            destination: const BusinessProfileScreen(),
           ),
-          Card(
-            child: Column(
-              children: [
-                _SettingsLink(
-                  icon: Icons.store_outlined,
-                  label: context.tr('businessProfile'),
-                  subtitle: app.businessProfile.businessName.isEmpty
-                      ? context.tr('businessProfileHelp')
-                      : app.businessProfile.businessName,
-                  destination: const BusinessProfileScreen(),
-                ),
-                const Divider(height: 1),
-                _SettingsLink(
-                  icon: Icons.point_of_sale_outlined,
-                  label: context.tr('tillTemplates'),
-                  subtitle: context.tr('tillTemplatesHelp'),
-                  destination: const TillTemplatesScreen(),
-                ),
-                const Divider(height: 1),
-                _SettingsLink(
-                  icon: Icons.tune_outlined,
-                  label: context.tr('denominationSettings'),
-                  subtitle: context.tr('denominationSettingsHelp'),
-                  destination: const DenominationSettingsScreen(),
-                ),
-              ],
-            ),
+          _link(
+            context,
+            icon: LucideIcons.receipt,
+            label: 'tillTemplates',
+            subtitle: context.tr('tillTemplatesHelp'),
+            destination: const TillTemplatesScreen(),
           ),
-          const SizedBox(height: 12),
-          Card(
-            child: Column(
-              children: [
-                _SettingsLink(
-                  icon: Icons.public_outlined,
-                  label: context.tr('cashCountryRegion'),
-                  subtitle: _regionName(context, app.selectedCountry),
-                  destination: const _CountryRegionScreen(),
-                ),
-                const Divider(height: 1),
-                _SettingsLink(
-                  icon: Icons.currency_exchange,
-                  label: context.tr('defaultCurrency'),
-                  subtitle: _currencyLabel(context, app.selectedCurrencyCode),
-                  destination: const _CurrencySettingsScreen(pickDefault: true),
-                ),
-                const Divider(height: 1),
-                _SettingsLink(
-                  icon: Icons.star_outline_rounded,
-                  label: context.tr('supportedCurrencies'),
-                  destination: const _CurrencySettingsScreen(),
-                ),
-              ],
-            ),
+          _link(
+            context,
+            icon: LucideIcons.slidersHorizontal,
+            label: 'denominationSettings',
+            subtitle: context.tr('denominationSettingsHelp'),
+            destination: const DenominationSettingsScreen(),
           ),
-          if (ReceiptPrinter.isSupported) ...[
-            const SizedBox(height: 12),
-            ListenableBuilder(
-              listenable: app.receiptPrinter,
-              builder: (context, _) => Card(
-                child: _SettingsLink(
-                  icon: Icons.print_outlined,
-                  label: context.tr('receiptPrinter'),
-                  subtitle: app.receiptPrinter.settings?.name ??
-                      context.tr('receiptChooseDevice'),
-                  destination: const ReceiptPrinterSettingsScreen(),
-                ),
+        ]),
+        groupGap,
+        if (embedded) _heading(context, 'cashRegionCurrency'),
+        _group([
+          _link(
+            context,
+            icon: LucideIcons.globe,
+            label: 'cashCountryRegion',
+            value: _regionName(context, app.selectedCountry),
+            destination: const _CountryRegionScreen(),
+          ),
+          _link(
+            context,
+            icon: LucideIcons.circleDollarSign,
+            label: 'defaultCurrency',
+            value: _currencyLabel(context, app.selectedCurrencyCode),
+            destination: const _CurrencySettingsScreen(pickDefault: true),
+          ),
+          _link(
+            context,
+            icon: LucideIcons.star,
+            label: 'supportedCurrencies',
+            destination: const _CurrencySettingsScreen(),
+          ),
+        ]),
+        if (ReceiptPrinter.isSupported) ...[
+          groupGap,
+          ListenableBuilder(
+            listenable: app.receiptPrinter,
+            builder: (context, _) => _group([
+              _link(
+                context,
+                icon: LucideIcons.printer,
+                label: 'receiptPrinter',
+                value: app.receiptPrinter.settings?.name ??
+                    context.tr('receiptChooseDevice'),
+                destination: const ReceiptPrinterSettingsScreen(),
               ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          Card(
-            child: _SettingsLink(
-              icon: Icons.settings_backup_restore,
-              label: context.tr('backupAndRestore'),
-              subtitle: context.tr('backupAndRestoreHelp'),
-              destination: const BackupScreen(),
-            ),
+            ]),
           ),
         ],
+        groupGap,
+        _group([
+          _link(
+            context,
+            icon: LucideIcons.history,
+            label: 'backupAndRestore',
+            subtitle: context.tr('backupAndRestoreHelp'),
+            destination: const BackupScreen(),
+          ),
+        ]),
+      ],
+    );
+  }
+
+  Widget _heading(BuildContext context, String label) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: EdgeInsetsDirectional.fromSTEB(embedded ? 4 : 16, 4, 4, 8),
+      child: Semantics(
+        header: true,
+        child: Text(
+          context.tr(label),
+          style: embedded
+              ? theme.textTheme.titleSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                )
+              : theme.textTheme.titleMedium,
+        ),
       ),
+    );
+  }
+
+  Widget _group(List<Widget> rows) {
+    final group = Column(
+      children: [
+        for (var index = 0; index < rows.length; index++) ...[
+          if (index > 0) const Divider(height: 1),
+          rows[index],
+        ],
+      ],
+    );
+    return embedded ? group : Card(child: group);
+  }
+
+  Widget _link(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Widget destination,
+    String? value,
+    String? subtitle,
+  }) {
+    void open() => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => destination),
+        );
+    final title = context.tr(label);
+    if (embedded) {
+      return SettingsRow(
+        icon: icon,
+        title: title,
+        value: value,
+        subtitle: subtitle,
+        onTap: open,
+      );
+    }
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: switch (subtitle ?? value) {
+        final text? => Text(text),
+        null => null,
+      },
+      trailing: const Icon(LucideIcons.chevronRight),
+      onTap: open,
     );
   }
 }
@@ -303,31 +370,6 @@ class _SettingsList extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             children: children,
           ),
-        ),
-      );
-}
-
-class _SettingsLink extends StatelessWidget {
-  const _SettingsLink({
-    required this.icon,
-    required this.label,
-    required this.destination,
-    this.subtitle,
-  });
-
-  final IconData icon;
-  final String label;
-  final Widget destination;
-  final String? subtitle;
-
-  @override
-  Widget build(BuildContext context) => ListTile(
-        leading: Icon(icon),
-        title: Text(label),
-        subtitle: subtitle == null ? null : Text(subtitle!),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => destination),
         ),
       );
 }

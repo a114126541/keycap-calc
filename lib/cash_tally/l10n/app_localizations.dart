@@ -1190,7 +1190,7 @@ class AppLocalizations {
       'allCurrencies': 'All currencies',
       'dateRange': 'Date range',
       'dateRangeActive': 'Selected dates',
-      'differencesOnly': 'Only closings with a shortage or surplus',
+      'differencesOnly': 'Differences only',
       'noHistoryMatches': 'No saved counts match these filters.',
       'backupAndRestore': 'Encrypted backup and restore',
       'backupAndRestoreHelp':

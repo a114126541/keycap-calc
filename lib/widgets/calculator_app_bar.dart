@@ -41,7 +41,7 @@ class _CalculatorAppBarState extends State<CalculatorAppBar> {
           return IconPageIndicator(
             controller: dashboardCtrl.pageController,
             icons: [
-              LucideIcons.wrench,
+              LucideIcons.settings,
               LucideIcons.calculator,
               LucideIcons.history,
             ],

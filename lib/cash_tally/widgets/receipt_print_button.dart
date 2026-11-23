@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/cash_receipt.dart';
@@ -6,6 +7,7 @@ import '../models/currency_definition.dart';
 import '../screens/receipt_printer_settings_screen.dart';
 import '../services/receipt_printer.dart';
 import '../state/app_scope.dart';
+import 'cash_panels.dart';
 
 class ReceiptPrintButton extends StatefulWidget {
   const ReceiptPrintButton({
@@ -39,7 +41,7 @@ class _ReceiptPrintButtonState extends State<ReceiptPrintButton> {
                   dimension: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.print_outlined),
+              : const Icon(LucideIcons.printer),
           label: Text(context.tr('receiptPrint')),
         ),
       ),
@@ -82,7 +84,7 @@ class _ReceiptPrintButtonState extends State<ReceiptPrintButton> {
   void _message(String key) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr(key))),
+        CashActionBar.feedback(context, context.tr(key)),
       );
     }
   }

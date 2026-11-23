@@ -22,13 +22,16 @@ The screenshots show **Ivory Desk** with the **3D Keycap** style and a **25 dp**
 - **Light, dark, and system modes.** Themes inspired by physical calculators have their own key colors and LCD-style displays.
 - **Five key styles** include Original, Flat, 2.5D Keycap, 3D Keycap, and Frosted Glass. Set the corner radius and font separately.
 - **Live results**, parentheses, percentages, and calculation history. Tap Backspace to delete one character or hold it to clear the expression.
+- **Settings** use a category menu and a scrollable detail pane in landscape, with a single column in portrait. The haptic feedback switch applies to calculator keys and cash tally stepper buttons when the device supports vibration and system touch feedback is enabled.
 - **Cash tally** for quick counts and till closing, with direct receipt printing. [Cash tally features and screenshots](#cash-tally)
 
 ## Cash tally
 
-Tap the banknote button next to About to open **New quick count**. Count banknotes and coins by denomination, enter quantities in steps of ×1, ×10, ×50 or ×100, and save the count with a note. The currency code and switch button are in the top-right corner.
+Tap the banknote button next to About to open cash tally. Switch between **Quick count** and **Professional till closing** on the same screen and keep the current currency, quantities, and note. The currency switch is in the top-right corner, and you can count banknotes and coins in steps of ×1, ×10, ×50, or ×100.
 
-Tap the cash register button to start **Professional till closing**. Compare counted cash with the expected amount, record the float, import a POS report, and capture signatures. Blind counting hides the expected amount and difference until you lock the count. Saved closings can be exported as PDF or CSV.
+In landscape, denominations appear on the left and totals on the right. Each pane scrolls independently, and **Save** and **Print** are fixed at the bottom of the right pane. Professional till closing adds cash reconciliation below the totals. Compare counted cash with the expected amount, record the float, import a POS report, and capture signatures. Blind counting hides the expected amount and difference until you lock the count.
+
+**Cash tally history** groups saved counts by date, newest first. Search by document number, till, cashier, or note, or filter by currency, date range, or differences. In landscape, the selected record opens alongside the list. From its details, you can open the report or print a receipt. The report can be shared as PDF, CSV, or plain text.
 
 In **Cash tally settings**, set the region and default currency, edit denominations, and save business details and till templates. Available currencies include CNY, HKD, MOP and TWD. You can export an encrypted backup and restore counts and settings from it.
 
@@ -42,11 +45,11 @@ Set **Extra paper feed** to about 15, 30, 45, or 60 mm. **Cut after printing** o
 
 ### Quick count in portrait
 
-<img src="screenshots/keycap-calc-cash-quick-portrait-en.png" alt="Quick count in portrait with the currency switch beside the title" width="330">
+<img src="screenshots/keycap-calc-cash-quick-portrait-en.png" alt="Quick count on a phone with the mode switch at the top and Save and Print at the bottom" width="330">
 
 ### Professional till closing in landscape
 
-<img src="screenshots/keycap-calc-cash-closing-landscape-en.png" alt="Professional till closing with denominations and total on the left and reconciliation on the right" width="820">
+<img src="screenshots/keycap-calc-cash-closing-landscape-en.png" alt="Professional till closing with denominations on the left and totals and reconciliation on the right" width="820">
 
 ## Run locally
 

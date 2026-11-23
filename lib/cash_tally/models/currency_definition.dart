@@ -126,6 +126,7 @@ class CurrencyDefinition {
     int minorUnits, {
     bool includeCode = false,
     String localeCode = 'cs',
+    bool fixedFractionDigits = false,
   }) {
     final negative = minorUnits < 0;
     final absolute = minorUnits.abs();
@@ -135,10 +136,11 @@ class CurrencyDefinition {
     final formatter = localizedDecimalFormat(localeCode);
     final groupedWhole = formatter.format(whole);
     final decimalSeparator = formatter.symbols.DECIMAL_SEP;
-    final amount = fractionDigits == 0 || fraction == 0
-        ? groupedWhole
-        : '$groupedWhole$decimalSeparator'
-            '${fraction.toString().padLeft(fractionDigits, '0')}';
+    final amount =
+        fractionDigits == 0 || (fraction == 0 && !fixedFractionDigits)
+            ? groupedWhole
+            : '$groupedWhole$decimalSeparator'
+                '${fraction.toString().padLeft(fractionDigits, '0')}';
     final sign = negative ? '−' : '';
     final formatted =
         symbolBefore ? '$sign$symbol$amount' : '$sign$amount $symbol';

@@ -9,6 +9,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 class SettingsController extends GetxController with StateMixin<SettingsModel> {
   late final PackageInfo packageInfo;
   static SettingsController get instance => Get.find<SettingsController>();
+  static bool get hapticsEnabled => Get.isRegistered<SettingsController>() &&
+      (instance.state?.hapticEnabled ?? false);
+
   final DatabaseRepository _dataBase;
   SettingsController(this._dataBase);
 

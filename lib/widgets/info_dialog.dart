@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:neumorphic_calculator/screens/settings_screen/settings_controller.dart';
 import 'package:neumorphic_calculator/utils/const.dart';
 import 'package:neumorphic_calculator/utils/extensions/theme_extension.dart';
+import 'package:neumorphic_calculator/utils/extensions/widget_extension.dart';
+import 'package:neumorphic_calculator/widgets/confirm_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class InfoDialog extends StatefulWidget {
@@ -16,6 +21,30 @@ class _InfoDialogState extends State<InfoDialog> with TickerProviderStateMixin {
   late AnimationController _swipeRightController;
   late AnimationController _swipeLeftController;
   late AnimationController _heartController;
+  Timer? _versionTapTimer;
+  int _versionTapCount = 0;
+
+  void _resetVersionTaps() {
+    _versionTapTimer?.cancel();
+    _versionTapTimer = null;
+    _versionTapCount = 0;
+  }
+
+  void _onVersionTap() {
+    if (ModalRoute.of(context)?.isCurrent != true) return;
+
+    _versionTapTimer ??= Timer(const Duration(seconds: 3), _resetVersionTaps);
+    _versionTapCount++;
+    if (_versionTapCount < 5) return;
+
+    _resetVersionTaps();
+    ConfirmDialog(
+      title: const Text('Exit ${AppConst.appName}'),
+      content: 'Are you sure you want to exit?',
+      confirmText: 'Exit',
+      onConfirm: SystemNavigator.pop,
+    ).show(context);
+  }
 
   void _initAnimations() {
     _swipeRightController =
@@ -61,6 +90,7 @@ class _InfoDialogState extends State<InfoDialog> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _versionTapTimer?.cancel();
     _swipeRightController.dispose();
     _swipeLeftController.dispose();
     _heartController.dispose();
@@ -86,9 +116,14 @@ class _InfoDialogState extends State<InfoDialog> with TickerProviderStateMixin {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Flexible(
-            child: Text(
-              '${AppConst.appName} ${SettingsController.instance.packageInfo.version}',
-              style: titleTextStyle,
+            child: GestureDetector(
+              onTap: theme.platform == TargetPlatform.android
+                  ? _onVersionTap
+                  : null,
+              child: Text(
+                '${AppConst.appName} ${SettingsController.instance.packageInfo.version}',
+                style: titleTextStyle,
+              ),
             ),
           ),
           IconButton(

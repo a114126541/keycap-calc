@@ -75,11 +75,9 @@ class CalculatorController extends GetxController {
     int newOffset = -1;
     if (exp.isNoSelection(position)) {
       if (exp.isEmpty) {
-        if (operator == '-') newExp = operator;
-        return;
-      }
-
-      if (operator == '-' && exp.endsWithAny(['x', '÷', '+'])) {
+        if (operator != '-') return;
+        newExp = operator;
+      } else if (operator == '-' && exp.endsWithAny(['x', '÷', '+'])) {
         newExp = (exp + operator);
       } else if (exp.endsWithOperator) {
         if (exp.length > 1) {

@@ -12,6 +12,7 @@ class CashCountSession {
   // v5 adds the optional custom closing title. LocalStore migrates older files
   // with a recoverable pre-v5 copy.
   static const int currentSchemaVersion = 5;
+  static const int maxDenominationQuantity = 100000000;
   static final Random _secureRandom = Random.secure();
 
   static String generateId() {
@@ -97,7 +98,7 @@ class CashCountSession {
     final rawQuantities = json['quantities'] as Map<String, Object?>? ??
         const <String, Object?>{};
     for (final value in rawQuantities.values) {
-      if (value is! int || value < 0 || value > 100000000) {
+      if (value is! int || value < 0 || value > maxDenominationQuantity) {
         throw const FormatException('Invalid denomination count');
       }
     }

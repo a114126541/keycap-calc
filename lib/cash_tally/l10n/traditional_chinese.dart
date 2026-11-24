@@ -70,6 +70,8 @@ const traditionalChinese = <String, String>{
   'cashCoinQuantity': '{count} 枚',
   'cashExpectedAmount': '應收現金',
   'cashRetainedFloat': '留存備用金',
+  'cashInvalidClosingAmount': '請輸入有效金額（{fields}）。',
+  'cashQuantityTooLarge': '數量或合計超出可記錄範圍，請減少數量。',
   'cashNotePlaceholder': '新增備註（選填）',
   'cashHistoryUnavailable': '無法讀取點鈔記錄。',
   'cashCountryRegion': '國家或地區',

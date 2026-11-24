@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -6,12 +7,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:neumorphic_calculator/cash_tally/core/formatters.dart';
 import 'package:neumorphic_calculator/cash_tally/data/country_catalog.dart';
 import 'package:neumorphic_calculator/cash_tally/data/currency_catalog.dart';
 import 'package:neumorphic_calculator/cash_tally/l10n/app_localizations.dart';
 import 'package:neumorphic_calculator/cash_tally/models/business_profile.dart';
 import 'package:neumorphic_calculator/cash_tally/models/cash_count_session.dart';
 import 'package:neumorphic_calculator/cash_tally/models/count_mode.dart';
+import 'package:neumorphic_calculator/cash_tally/models/currency_definition.dart';
+import 'package:neumorphic_calculator/cash_tally/models/custom_denomination.dart';
+import 'package:neumorphic_calculator/cash_tally/screens/count_screen.dart';
 import 'package:neumorphic_calculator/cash_tally/screens/history_screen.dart'
     as cash_history;
 import 'package:neumorphic_calculator/cash_tally/services/backup_service.dart';
@@ -58,6 +63,159 @@ void main() {
         currency.formatMinor(session.totalMinorUnits(currency),
             localeCode: 'zh-Hans'),
         '¥201.30');
+  });
+
+  testWidgets('invalid closing amounts block saving without losing the draft',
+      (tester) async {
+    tester.view.physicalSize = const Size(1000, 620);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final repository =
+        DatabaseRepository(await SharedPreferences.getInstance());
+    final (directory, store, app, saved) = (await tester.runAsync(() async {
+      final directory =
+          await Directory.systemTemp.createTemp('keycap-closing-amounts-');
+      final store =
+          LocalStore(documentsDirectoryProvider: () async => directory);
+      return (
+        directory,
+        store,
+        AppController(repository, localStore: store),
+        Completer<void>(),
+      );
+    }))!;
+    addTearDown(() => directory.delete(recursive: true));
+    addTearDown(app.dispose);
+
+    await tester.pumpWidget(AppScope(
+      controller: app,
+      child: MaterialApp(
+        localizationsDelegates: const [AppLocalizations.delegate],
+        home: CountScreen(initialCurrencyCode: 'CNY', onSaved: saved.complete),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    final expected = find.byKey(const ValueKey('cash-expected'));
+    final float = find.byKey(const ValueKey('cash-float'));
+    final save = find.text('Save');
+    final summary = find.byKey(const ValueKey('cash-summary-list'));
+    final summaryController = tester.widget<ListView>(summary).controller;
+    await tester.scrollUntilVisible(
+      expected,
+      180,
+      scrollable: find.byWidgetPredicate((widget) =>
+          widget is Scrollable && widget.controller == summaryController),
+    );
+    await tester.enterText(expected, '100..20');
+    await tester.ensureVisible(float);
+    await tester.enterText(float, '1..234');
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+
+    expect(saved.isCompleted, isFalse);
+    expect(app.sessions, isEmpty);
+    expect(find.text('Enter a valid amount for Expected cash · Float to keep.'),
+        findsOneWidget);
+    expect(tester.widget<TextField>(expected).controller!.text, '100..20');
+    expect(tester.widget<TextField>(float).controller!.text, '1..234');
+
+    await tester.ensureVisible(expected);
+    await tester.enterText(expected, '1,234.56');
+    await tester.enterText(float, '');
+    await tester.runAsync(() async {
+      await tester.tap(save);
+      await saved.future.timeout(const Duration(seconds: 4));
+    });
+    await tester.pumpAndSettle();
+
+    final stored = (await tester.runAsync(store.loadSessions))!.single;
+    expect(stored.expectedMinorUnits, 123456);
+    expect(stored.floatMinorUnits, isNull);
+  });
+
+  testWidgets('cash quantity entry and steppers enforce count and total limits',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 620));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    SharedPreferences.setMockInitialValues({});
+    final repository =
+        DatabaseRepository(await SharedPreferences.getInstance());
+    final app = AppController(repository);
+    addTearDown(app.dispose);
+    await app.addCustomDenomination(const CustomDenomination(
+      id: 'large-note',
+      currencyCode: 'CNY',
+      minorUnits: AppFormatters.maxMinorUnits,
+      label: 'Large note',
+      kind: DenominationKind.banknote,
+    ));
+    await tester.pumpWidget(AppScope(
+      controller: app,
+      child: const MaterialApp(
+        localizationsDelegates: [AppLocalizations.delegate],
+        home: CountScreen(initialCurrencyCode: 'CNY', mode: CountMode.quick),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    const limitMessage = 'Reduce the quantity to keep the count within range.';
+    final hundred = find.byWidgetPredicate((widget) =>
+        widget is DenominationRow &&
+        widget.denomination.id == 'banknote_10000');
+    final large = find.widgetWithText(DenominationRow, 'Large note');
+    Finder stepper(Finder row, IconData icon) => find.descendant(
+        of: row, matching: find.widgetWithIcon(IconButton, icon));
+    int quantity(Finder row) => tester.widget<DenominationRow>(row).quantity;
+
+    await tester.tap(find.descendant(
+      of: hundred,
+      matching: find.widgetWithText(TextButton, '0'),
+    ));
+    await tester.pumpAndSettle();
+    final quantityField = find.byType(TextFormField);
+    final confirm = find.text('Confirm');
+    await tester.enterText(quantityField, '1000000000000000');
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+    expect(find.text(limitMessage), findsOneWidget);
+    expect(quantity(hundred), 0);
+
+    final limit = CashCountSession.maxDenominationQuantity;
+    await tester.enterText(quantityField, '$limit');
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+    expect(quantity(hundred), limit);
+    await tester.tap(stepper(hundred, LucideIcons.plus));
+    await tester.pumpAndSettle();
+    expect(find.text(limitMessage), findsOneWidget);
+    expect(quantity(hundred), limit);
+
+    await tester.tap(stepper(large, LucideIcons.plus));
+    await tester.pumpAndSettle();
+    expect(quantity(large), 0);
+    await tester.tap(find.descendant(
+      of: hundred,
+      matching: find.widgetWithText(TextButton, '$limit'),
+    ));
+    await tester.pumpAndSettle();
+    await tester.enterText(quantityField, '0');
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+    await tester.tap(stepper(large, LucideIcons.plus));
+    await tester.pumpAndSettle();
+    expect(quantity(large), 1);
+    await tester.tap(stepper(hundred, LucideIcons.plus));
+    await tester.pumpAndSettle();
+    expect(quantity(hundred), 0);
+    await tester.tap(stepper(large, LucideIcons.minus));
+    await tester.pumpAndSettle();
+    await tester.tap(stepper(hundred, LucideIcons.plus));
+    await tester.pumpAndSettle();
+    expect(quantity(hundred), 1);
+    expect(tester.takeException(), isNull);
   });
 
   test('settings and concurrent cash saves stay separate from calculator data',

@@ -294,5 +294,28 @@ void main() {
     await tester.tap(find.text('2'));
     await tester.pumpAndSettle();
     expect(calculator.exp, '2');
+
+    await tester.tap(find.byKey(const ValueKey(CalculatorButton.allClear)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(CalculatorButton.add)));
+    await tester.pumpAndSettle();
+    expect(calculator.exp, isEmpty);
+    await tester.tap(find.byKey(const ValueKey(CalculatorButton.subtract)));
+    await tester.pumpAndSettle();
+    expect(calculator.exp, '-');
+    expect(tester.widget<NumberPad>(find.byType(NumberPad)).equalsEnabled,
+        isFalse);
+    for (final button in [
+      CalculatorButton.five,
+      CalculatorButton.add,
+      CalculatorButton.two,
+    ]) {
+      await tester.tap(find.byKey(ValueKey(button)));
+      await tester.pumpAndSettle();
+    }
+    expect(calculator.exp, '-5+2');
+    await tester.tap(find.text('='));
+    await tester.pumpAndSettle();
+    expect(calculator.exp, '-3');
   });
 }

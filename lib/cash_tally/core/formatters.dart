@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'locale_formatting.dart';
 
 abstract final class AppFormatters {
+  static const maxMinorUnits = 9000000000000000;
+
   static String dateTime(DateTime value, {String localeCode = 'cs'}) {
     final local = value.toLocal();
     final day = local.day.toString().padLeft(2, '0');
@@ -37,7 +39,10 @@ abstract final class AppFormatters {
           '',
         )
         .trim();
-    if (!RegExp(r'^-?[0-9][0-9 ,.]*$').hasMatch(source)) return null;
+    if (!RegExp(r'^-?[0-9][0-9 ,.]*$').hasMatch(source) ||
+        RegExp(r'[,.] *[,.]').hasMatch(source)) {
+      return null;
+    }
 
     final negative = source.startsWith('-');
     if (negative) source = source.substring(1);
@@ -90,7 +95,6 @@ abstract final class AppFormatters {
     for (var index = 0; index < fractionDigits; index += 1) {
       scale *= 10;
     }
-    const maxMinorUnits = 9000000000000000;
     if (whole > maxMinorUnits ~/ scale) return null;
     final paddedFraction = fractionSource.padRight(fractionDigits, '0');
     final fraction = paddedFraction.isEmpty ? 0 : int.tryParse(paddedFraction);

@@ -1091,8 +1091,34 @@ class _CountScreenState extends State<CountScreen> {
 
   int _quantity(Denomination denomination) => _quantities[denomination.id] ?? 0;
 
+  bool _canSetQuantity(Denomination denomination, int value) {
+    if (value < 0 || value > CashCountSession.maxDenominationQuantity) {
+      return false;
+    }
+    if (value <= _quantity(denomination)) return true;
+
+    var remaining = AppFormatters.maxMinorUnits;
+    for (final item in _currency.denominations) {
+      final count = item.id == denomination.id ? value : _quantity(item);
+      if (count == 0) continue;
+      if (item.minorUnits > remaining ~/ count) return false;
+      remaining -= item.minorUnits * count;
+    }
+    return true;
+  }
+
+  void _showValidationMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(CashActionBar.feedback(context, message));
+  }
+
   void _setQuantity(Denomination denomination, int value) {
     if (_quantitiesLocked) {
+      return;
+    }
+    if (!_canSetQuantity(denomination, value)) {
+      _showValidationMessage(context.tr('cashQuantityTooLarge'));
       return;
     }
     if (SettingsController.hapticsEnabled) {
@@ -1133,13 +1159,22 @@ class _CountScreenState extends State<CountScreen> {
             autofocus: true,
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,
-            decoration: InputDecoration(labelText: context.tr('quantity')),
+            decoration: InputDecoration(
+              labelText: context.tr('quantity'),
+              errorMaxLines: 2,
+            ),
             inputFormatters: <TextInputFormatter>[
               FilteringTextInputFormatter.digitsOnly,
             ],
-            validator: (value) => int.tryParse(value ?? '') == null
-                ? context.tr('quantityInvalid')
-                : null,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return context.tr('quantityInvalid');
+              }
+              final count = int.tryParse(value);
+              return count != null && _canSetQuantity(denomination, count)
+                  ? null
+                  : context.tr('cashQuantityTooLarge');
+            },
             onEditingComplete: submit,
           ),
           actions: <Widget>[
@@ -1286,6 +1321,24 @@ class _CountScreenState extends State<CountScreen> {
           )
         : null;
 
+    final expectedMinorUnits = closingAmount(_expectedController);
+    final floatMinorUnits = closingAmount(_floatController);
+    if (_mode == CountMode.professional) {
+      final invalidFields = [
+        if (expectedMinorUnits == null &&
+            _expectedController.text.trim().isNotEmpty)
+          context.tr('cashExpectedAmount'),
+        if (floatMinorUnits == null && _floatController.text.trim().isNotEmpty)
+          context.tr('cashRetainedFloat'),
+      ];
+      if (invalidFields.isNotEmpty) {
+        _showValidationMessage(context.tr('cashInvalidClosingAmount', {
+          'fields': invalidFields.join(' · '),
+        }));
+        return;
+      }
+    }
+
     final session = CashCountSession(
       id: _sessionId,
       documentNumber: _documentNumber,
@@ -1293,8 +1346,8 @@ class _CountScreenState extends State<CountScreen> {
       createdAt: _createdAt,
       updatedAt: DateTime.now(),
       quantities: _quantities,
-      expectedMinorUnits: closingAmount(_expectedController),
-      floatMinorUnits: closingAmount(_floatController),
+      expectedMinorUnits: expectedMinorUnits,
+      floatMinorUnits: floatMinorUnits,
       note: _noteController.text.trim(),
       closingTitle: closingText(_closingTitleController),
       businessName: closingText(_businessNameController),
